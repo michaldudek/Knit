@@ -1,0 +1,21 @@
+{
+    "name": "michaldudek/knit",
+    "description": "Basic and quick PHP ORM/ODM.",
+    "keywords": ["orm", "odm"],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Michał Dudek",
+            "email": "michal@michaldudek.pl"
+        }
+    ],
+    "require": {
+        "php": ">=5.3.3",
+        "splot/foundation": "dev-master",
+        "splot/event-manager": "dev-master",
+        "splot/log": "dev-master"
+    },
+    "autoload": {
+        "psr-0": { "Knit": "src/" }
+    }
+}
