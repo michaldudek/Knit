@@ -1,6 +1,6 @@
 <?php
 /**
- * Exception usually thrown when there was no store defined.
+ * Exception usually thrown when there was no structure defined for an entity.
  * 
  * @package Knit
  * @subpackage Exceptions
@@ -11,9 +11,9 @@
  */
 namespace Knit\Exceptions;
 
-use Splot\Foundation\Exceptions\NotFoundException;
+use Splot\Foundation\Exceptions\ReadOnlyException;
 
-class NoStoreException extends NotFoundException
+class StructureNotDefinedException extends ReadOnlyException
 {
 
 

@@ -1,6 +1,6 @@
 <?php
 /**
- * Exception usually thrown when there was no store defined.
+ * Exception usually thrown when there was an error executing a store query.
  * 
  * @package Knit
  * @subpackage Exceptions
@@ -11,9 +11,7 @@
  */
 namespace Knit\Exceptions;
 
-use Splot\Foundation\Exceptions\NotFoundException;
-
-class NoStoreException extends NotFoundException
+class StoreQueryErrorException extends \RuntimeException
 {
 
 
