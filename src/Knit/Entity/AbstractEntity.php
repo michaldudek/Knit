@@ -391,6 +391,29 @@ abstract class AbstractEntity implements Dumpable
         return $this->_repository;
     }
 
+    /**
+     * Magical method that allows to cast the entity to string.
+     * 
+     * Checks if there exists "name" or "title" field and uses them as a result.
+     * 
+     * @return string
+     * 
+     * @throws \RuntimeException When cannot magically resolve a string value.
+     */
+    public function __toString() {
+        $name = $this->getName();
+        if (is_string($name) && !empty($name)) {
+            return $name;
+        }
+
+        $title = $this->getTitle();
+        if (is_string($title) && !empty($title)) {
+            return $title;
+        }
+
+        throw \RuntimeException('Entity "'. get_class($this) .'" does not implement __toString() method and cannot be cast to string.');
+    }
+
     /*****************************************************
      * HELPERS
      *****************************************************/
