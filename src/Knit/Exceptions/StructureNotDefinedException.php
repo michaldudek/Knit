@@ -11,7 +11,7 @@
  */
 namespace Knit\Exceptions;
 
-use Splot\Foundation\Exceptions\ReadOnlyException;
+use MD\Foundation\Exceptions\ReadOnlyException;
 
 class StructureNotDefinedException extends ReadOnlyException
 {

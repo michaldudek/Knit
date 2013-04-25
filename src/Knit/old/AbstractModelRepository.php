@@ -12,7 +12,7 @@
  */
 namespace Knit;
 
-use Splot\Foundation\Utils\ObjectUtils;
+use MD\Foundation\Utils\ObjectUtils;
 
 use Knit\Store\StoreInterface;
 use Knit\Exceptions\NoStoreException;

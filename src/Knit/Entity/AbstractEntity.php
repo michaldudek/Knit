@@ -11,8 +11,8 @@
  */
 namespace Knit\Entity;
 
-use Splot\Foundation\Debug\Interfaces\Dumpable;
-use Splot\Foundation\Utils\ObjectUtils;
+use MD\Foundation\Debug\Interfaces\Dumpable;
+use MD\Foundation\Utils\ObjectUtils;
 
 use Knit\Entity\Repository;
 use Knit\Exceptions\StructureDefinedException;

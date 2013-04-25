@@ -11,8 +11,8 @@
  */
 namespace Knit\Entity;
 
-use Splot\Foundation\Debug\Debugger;
-use Splot\Foundation\Utils\ObjectUtils;
+use MD\Foundation\Debug\Debugger;
+use MD\Foundation\Utils\ObjectUtils;
 
 use Knit\Entity\AbstractEntity;
 use Knit\Exceptions\StructureNotDefinedException;

@@ -16,8 +16,8 @@ namespace Knit\Store;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
-use Splot\Foundation\Exceptions\NotFoundException;
-use Splot\Foundation\Utils\ArrayUtils;
+use MD\Foundation\Exceptions\NotFoundException;
+use MD\Foundation\Utils\ArrayUtils;
 
 use Knit\Exceptions\StoreConnectionFailedException;
 use Knit\Exceptions\StoreQueryErrorException;

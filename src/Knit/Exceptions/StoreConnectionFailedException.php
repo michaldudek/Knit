@@ -11,7 +11,7 @@
  */
 namespace Knit\Exceptions;
 
-use Splot\Foundation\Exceptions\NotFoundException;
+use MD\Foundation\Exceptions\NotFoundException;
 
 class StoreConnectionFailedException extends NotFoundException
 {

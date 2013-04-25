@@ -10,7 +10,7 @@
  */
 namespace Knit;
 
-use Splot\Foundation\Debug\Debugger;
+use MD\Foundation\Debug\Debugger;
 
 use Knit\Exceptions\RepositoryDefinedException;
 use Knit\Exceptions\StoreDefinedException;
