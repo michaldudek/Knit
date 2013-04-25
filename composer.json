@@ -13,8 +13,7 @@
         "php": ">=5.3.3",
         "psr/log": "dev-master",
         "michaldudek/foundation": "dev-master",
-        "splot/event-manager": "dev-master",
-        "splot/log": "dev-master"
+        "splot/event-manager": "dev-master"
     },
     "autoload": {
         "psr-0": { "Knit": "src/" }
