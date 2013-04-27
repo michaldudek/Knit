@@ -22,6 +22,8 @@ use MD\Foundation\Exceptions\NotFoundException;
 use MD\Foundation\Utils\ArrayUtils;
 use MD\Foundation\Utils\StringUtils;
 
+use Knit\Criteria\CriteriaExpression;
+use Knit\Criteria\FieldValue;
 use Knit\Exceptions\StoreConnectionFailedException;
 use Knit\Exceptions\StoreQueryErrorException;
 use Knit\Store\StoreInterface;
@@ -65,35 +67,30 @@ class MySQLStore implements StoreInterface
     /*****************************************************
      * STORE INTERFACE IMPLEMENTATION
      *****************************************************/
-    public function find($table, array $criteria = array(), array $params = array()) {
-        $criteria = $this->parseCriteria($criteria);
+    public function find($table, CriteriaExpression $criteria = null, array $params = array()) {
+        $criteria = $this->parseCriteria($criteria, $parameters);
 
-        throw new \RuntimeException('@TODO: MySQLStore::find()');
-
-        /*
+        //dump($parameters);
+        //dump($criteria);
         
-        // parse any optional params
-        $orderBy        = isset($params['orderBy'])     ? $this->makeSafe($params['orderBy'])   : false;
-        $orderDir       = ((isset($params['orderDir'])) AND in_array($params['orderDir'], array(MDOrderAscending, MDOrderDescending))) ? $params['orderDir'] : MDOrderAscending;
+        // parse the params
+        $orderBy        = isset($params['orderBy'])     ? $params['orderBy']                    : false;
+        $orderDir       = ((isset($params['orderDir'])) AND in_array(strtolower($params['orderDir']), array('asc', 'desc')))
+            ? $params['orderDir'] : 'asc';
         $start          = isset($params['start'])       ? intval($params['start'])              : 0;
         $limit          = isset($params['limit'])       ? intval($params['limit'])              : false;
         $forceMulti     = ($limit == 1)                 ? false                                 : true;
         
-        $query = "
-            SELECT
-                *
-            FROM `". $this->makeSafe($table) ."`
-            ". ($criteria           ? "WHERE ". $criteria                                   : null) ."
-            ". ($orderBy            ? "ORDER BY `". $orderBy ."` ". $orderDir               : null) ."
-            ". ($limit              ? "LIMIT ". $start .", ". $limit                        : null) ."
-        ";
+        // and finally write the SQL query
+        $query = 'SELECT * FROM `'. $table .'` '
+            . ($criteria           ? ' WHERE '. $criteria                                   : null)
+            . ($orderBy            ? ' ORDER BY `'. $orderBy .'` '. $orderDir               : null)
+            . ($limit              ? ' LIMIT '. $start .', '. $limit                        : null);
 
-        return $this->query($query, $forceMulti);
-        */
-        return array();
+        return $this->query($query, $parameters, $forceMulti);
     }
 
-    public function count($table, array $criteria = array(), array $params = array()) {
+    public function count($table, CriteriaExpression $criteria = null, array $params = array()) {
         return 0;
     }
 
@@ -101,10 +98,10 @@ class MySQLStore implements StoreInterface
         return 0;
     }
 
-    public function update($table, array $criteria, array $values) {
+    public function update($table, CriteriaExpression $criteria = null, array $values) {
     }
 
-    public function delete($table, array $criteria) {
+    public function delete($table, CriteriaExpression $criteria = null) {
     }
 
     /**
@@ -165,13 +162,13 @@ class MySQLStore implements StoreInterface
      * Executes the given PDO statement (SQL query).
      * 
      * @param string $sql SQL query to be executed.
-     * @param array $params [optional] Array of parameters that should be bound to the SQL query.
+     * @param array $parameters [optional] Array of parameters that should be bound to the SQL query.
      * @param bool $forceMulti [optional] Should the result be always a collection (array of results)? Default: false.
      * @return array Data returned from the database as an array.
      * 
      * @throws StoreQueryErrorException When there was an error executing the query.
      */
-    protected function query($sql, array $params = array(), $forceMulti = false) {
+    protected function query($sql, array $parameters = array(), $forceMulti = false) {
         // lazy connection, only when needed
         if (!$this->isConnected()) {
             $this->connect();
@@ -179,10 +176,10 @@ class MySQLStore implements StoreInterface
         
         try {
             $statement = $this->connection->prepare(trim($sql));
-            $statement->execute($params);
+            $statement->execute($parameters);
         } catch (PDOException $e) {
             $this->logQuery($statement, array(
-                'params' => $params
+                'parameters' => $parameters
             ), true);
             throw new StoreQueryErrorException('MySQL: '. $e->getMessage(), 0, $e);
         }
@@ -206,7 +203,8 @@ class MySQLStore implements StoreInterface
         // finally log the query
         $this->logQuery($statement, array(
             'type' => $type,
-            'rows' => $rowCount
+            'affected' => $rowCount,
+            'parameters' => $parameters
         ));
 
         return $data;
@@ -307,8 +305,118 @@ class MySQLStore implements StoreInterface
         );
     }
 
-    protected function parseCriteria(array $criteria) {
-        throw new \RuntimeException('@TODO: MySQLStore::parseCriteria()');
+    /**
+     * Parses a CriteriaExpression into SQL format that uses parameters for prepared statements.
+     * 
+     * @param CriteriaExpression $criteria [optional] Criteria to be parsed.
+     * @param array $parameters [optional] An array of parameters in which the parameters and their values will be stored.
+     * @return string
+     * 
+     * @throws InvalidOperatorException When couldn't handle an operator either because of lack of implementation or MySQL not supporting that operator.
+     */
+    protected function parseCriteria(CriteriaExpression $criteria = null, &$parameters = array()) {
+        if (is_null($criteria)) {
+            return '(1)';
+        }
+
+        $items = array();
+
+        foreach($criteria->getCriteria() as $criterium) {
+            if ($criterium instanceof CriteriaExpression) {
+                $items[] = $this->parseCriteria($criterium, $parameters);
+                continue;
+            }
+
+            $sql = '`'. $criterium->getField() .'`';
+
+            // add value to parameters array
+            // but first figure out a unique name
+            $i = 0;
+            $parameter = 'where__'. $criterium->getField();
+            while(isset($parameters[$parameter])) {
+                $parameter = $parameter . $i++;
+            }
+
+            $parameters[$parameter] = $criterium->getValue();
+
+            // now figure out an operator
+            switch($criterium->getOperator()) {
+                case FieldValue::OPERATOR_EQUALS:
+                    // if checking against NULL value then syntax is a bit different
+                    if (is_null($parameters[$parameter])) {
+                        $sql .= ' IS NULL';
+                        unset($parameters[$parameter]);
+                        break;
+                    }
+
+                    $sql .= ' = :'. $parameter;
+                    break;
+
+                case FieldValue::OPERATOR_NOT:
+                    // if checking against NULL value then syntax is a bit different
+                    if (is_null($parameters[$parameter])) {
+                        $sql .= ' IS NOT NULL';
+                        unset($parameters[$parameter]);
+                        break;
+                    }
+
+                    $sql .= ' != :'. $parameter;
+                    break;
+
+                case FieldValue::OPERATOR_IN:
+                    // PDO doesn't handle joining the values for IN clause...
+                    // so copy the parameter values and unset the parameter
+                    $values = ArrayUtils::resetKeys($parameters[$parameter]); // btw reset keys so they're numeric
+                    unset($parameters[$parameter]);
+
+                    // if the value is empty or is not an array then replace whole statement with a 0 (false) so it never matches
+                    if (!is_array($values) || empty($values)) {
+                        $sql = '0';
+                        break;
+                    }
+
+                    // we have to build that clause ourselves
+                    // but are we handling int's or strings?
+                    if (is_int($values[0])) {
+                        $sql .= ' IN ('. implode(',', $values) .')';
+                    } else {
+                        $sql .= " IN ('". implode("', '", $values) ."')";
+                    }
+
+                    break;
+
+                case FieldValue::OPERATOR_GREATER_THAN:
+                    $sql .= ' > :'. $parameter;
+                    break;
+
+                case FieldValue::OPERATOR_GREATER_THAN_EQUAL:
+                    $sql .= ' >= :'. $parameter;
+                    break;
+
+                case FieldValue::OPERATOR_LOWER_THAN:
+                    $sql .= ' < :'. $parameter;
+                    break;
+
+                case FieldValue::OPERATOR_LOWER_THAN_EQUAL:
+                    $sql .= ' <= :'. $parameter;
+                    break;
+
+                // if it hasn't been handled by the above then throw an exception
+                default:
+                    throw new InvalidOperatorException('MySQLStore cannot handle operator "'. trim($criterium->getOperator(), '_') .'" used for "'. $criterium->getField() .'" column. Either because this operator is not supported by MySQL DBMS or it has not been implemented in Knit yet.');
+            }
+
+            // and finally add the generated SQL to the items list
+            $items[] = $sql;
+        }
+
+        if (empty($items)) {
+            return '(1)';
+        }
+
+        // finally join all the items and return them
+        $logic = $criteria->getLogic() === CriteriaExpression::LOGIC_AND ? ' AND ' : ' OR ';
+        return '( '. implode($logic, $items) .' )';
     }
 
     /*****************************************************

@@ -14,10 +14,15 @@ namespace Knit\Entity;
 use MD\Foundation\Debug\Debugger;
 use MD\Foundation\Utils\ObjectUtils;
 
+use Knit\Criteria\CriteriaExpression;
 use Knit\Entity\AbstractEntity;
 use Knit\Exceptions\StructureNotDefinedException;
 use Knit\Store\StoreInterface;
+use Knit\Knit;
 
+/**
+ * @todo Magic findBy* and fineOneBy* methods.
+ */
 class Repository
 {
 
@@ -86,7 +91,7 @@ class Repository
     public function find(array $criteria = array(), array $params = array()) {
         $objects = array();
         
-        $result = $this->store->find($this->collection, $criteria, $params);
+        $result = $this->store->find($this->collection, $this->parseCriteriaArray($criteria), $params);
         
         foreach($result as $item) {
             $objects[] = $this->instantiateWithData($item);
@@ -103,7 +108,7 @@ class Repository
      * @return object|null
      */
     public function findOne(array $criteria = array(), array $params = array()) {
-        $result = $this->store->find($this->collection, $criteria, array_merge($params, array(
+        $result = $this->store->find($this->collection, $this->parseCriteriaArray($criteria), array_merge($params, array(
             'limit' => 1
         )));
         
@@ -154,7 +159,7 @@ class Repository
      * @return mixed
      */
     public function count(array $criteria = array(), array $params = array()) {
-        return $this->store->count($this->collection, $criteria, $params);
+        return $this->store->count($this->collection, $this->parseCriteriaArray($criteria), $params);
     }
 
     /*****************************************************
@@ -310,13 +315,11 @@ class Repository
         $entityClass = $this->entityClass;
         $object = new $entityClass();
 
-        // @todo Think how to handle this with events.
-        $object->willCreateObject();
+        // @todo Create pre instantiation event.
 
         $object->_setProperties($data);
 
-        // @todo Think how to handle this with events.
-        $object->didCreateObject();
+        // @todo Create post instantiation event.
 
         return $object;
     }
@@ -331,15 +334,13 @@ class Repository
         $entityClass = $this->entityClass;
         $object = new $entityClass();
         
-        // @todo Think how to handle this with events.
-        $object->willCreateObject();
+        // @todo Create pre instantiation event.
         
         foreach($data as $var => $value) {
             call_user_func_array(array($object, ObjectUtils::setter($var)), array($value));
         }
         
-        // @todo Think how to handle this with events.
-        $object->didCreateObject();
+        // @todo Create post instantiation event.
 
         return $object;
     }
@@ -371,6 +372,49 @@ class Repository
         if (Debugger::getClass($entity) !== $this->entityClass) {
             throw new \InvalidArgumentException('The given entity does not belong to repository "'. Debugger::getClass($this) .'". Entity should be of class "'. $this->entityClass .'", "'. Debugger::getClass($entity) .'" given.');
         }
+    }
+
+    /**
+     * Parses criteria array which is used in factory methods.
+     * 
+     * @param array $criteria Array of criteria to be parsed.
+     * @return CriteriaExpression
+     */
+    protected function parseCriteriaArray(array $criteria = array()) {
+        // cast proper types on the values
+        $criteria = $this->castCriteriaArrayTypes($criteria);
+        return new CriteriaExpression($criteria);
+    }
+
+    /**
+     * Casts proper types onto criteria array.
+     * 
+     * @param array $criteria Array of criteria that need their types fixed.
+     * @return array
+     */
+    protected function castCriteriaArrayTypes(array $criteria = array()) {
+        foreach($criteria as $key => $value) {
+            // if value is an array and the key is a logic key then we have a sub property
+            if (is_array($value) && ($key === Knit::LOGIC_OR || $key === Knit::LOGIC_AND)) {
+                $criteria[$key] = $this->castCriteriaArrayTypes($value);
+                continue;
+            }
+
+            $keyArray = explode(':', $key);
+            $property = $keyArray[0];
+
+            // if value is an array then we also need to cast proper types on it
+            if (is_array($value)) {
+                foreach($value as $k => $val) {
+                    $value[$k] = call_user_func_array(array($this->entityClass, '_castPropertyType'), array($property, $val));
+                }
+                $criteria[$key] = $value;
+            } else {
+                $criteria[$key] = call_user_func_array(array($this->entityClass, '_castPropertyType'), array($property, $value));
+            }
+        }
+
+        return $criteria;
     }
 
 }

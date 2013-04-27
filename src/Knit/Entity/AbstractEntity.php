@@ -89,27 +89,6 @@ abstract class AbstractEntity implements Dumpable
     }
 
     /*****************************************************
-     * LIFECYCLE EVENTS
-     *****************************************************/
-    /**
-     * This method is called when instantiating the entity object before any data is passed to that object.
-     * 
-     * You should overwrite this method if you want to set any default values of the object.
-     * 
-     * @todo Use event manager to publish an event with data that will be used for creation of instance.
-     */
-    protected function willCreateObject() {}
-    
-    /**
-     * This method is called when instantiating the entity object after all data have been passed to that object.
-     * 
-     * You should overwrite this method if you want to set any automatic values that depend on previously passed properties.
-     * 
-     * @todo Use event manager to publish an event with instance of the object.
-     */
-    protected function didCreateObject() {}
-
-    /*****************************************************
      * PROPERTY AND METHOD OVERLOADING
      *****************************************************/
     /**
@@ -162,29 +141,12 @@ abstract class AbstractEntity implements Dumpable
      * Setting property through this method will not use the setter,
      * but rather set the value directly.
      * 
-     * @param string $var Name of the property.
+     * @param string $property Name of the property.
      * @param mixed $value Value to set to.
      */
-    public function _setProperty($var, $value) {
-        // map to proper type (if type is set)
-        if (isset(static::$_structure[$var])) {
-            switch(static::$_structure[$var]['type']) {
-                case Knit::TYPE_INT:
-                    $value = intval($value);
-                    break;
-
-                case Knit::TYPE_FLOAT:
-                    $value = floatval($value);
-                    break;
-
-                default:
-                    // by default all properties are strings
-                    $value = strval($value);
-            }
-        }
-        
+    public function _setProperty($property, $value) {
         // set the property in properties array
-        $this->_properties[$var] = $value;
+        $this->_properties[$property] = static::_castPropertyType($property, $value);
     }
     
     /**
@@ -283,11 +245,11 @@ abstract class AbstractEntity implements Dumpable
      * @todo Implement validators (really?).
      */
     final public function __call($methodName, $arguments) {
-        $type = substr($methodName, 0, 3);
+        $type = strtolower(substr($methodName, 0, 3));
         
         // called a setter or a getter ?
         if (($type == 'set') OR ($type == 'get')) {
-            $property = lcfirst(substr($name, 3));
+            $property = lcfirst(substr($methodName, 3));
 
             if ($type == 'set') {
                 // if a setter then require at least one argument
@@ -300,6 +262,14 @@ abstract class AbstractEntity implements Dumpable
             } else if ($type == 'get') {
                 return $this->_getProperty($property);
             }
+        }
+
+        // called an isser?
+        if (strtolower(substr($methodName, 0, 2)) === 'is') {
+            $property = lcfirst(substr($methodName, 2));
+            $value = $this->_getProperty($property);
+            // cast '0' as false
+            return (!$value || $value == '0') ? false : true;
         }
         
         // called an adder?
@@ -335,7 +305,7 @@ abstract class AbstractEntity implements Dumpable
     
         // undefined method called!
         $trace = debug_backtrace();
-        trigger_error('Call to undefined entity\'s method '. $this->__getClass .'::'. $methodName .'() in '. $trace[0]['file'] .' on line '. $trace[0]['line'], E_USER_ERROR);
+        trigger_error('Call to undefined entity\'s method '. $this->__getClass() .'::'. $methodName .'() in '. $trace[0]['file'] .' on line '. $trace[0]['line'], E_USER_ERROR);
         return null;
     }
     
@@ -453,6 +423,49 @@ abstract class AbstractEntity implements Dumpable
      */
     public static function __class() {
         return get_called_class();
+    }
+
+    /**
+     * Casts proper PHP type on the property's value.
+     * 
+     * @param string $property Name of the property.
+     * @param mixed $value Value for the property to be casted.
+     * @return mixed
+     */
+    public static function _castPropertyType($property, $value) {
+        if (isset(static::$_structure[$property])) {
+            switch(static::$_structure[$property]['type']) {
+                case Knit::TYPE_INT:
+                    // cast booleans manually to ensure proper results
+                    if ($value === false || $value === true) {
+                        $value = $value ? 1 : 0;
+                        break;
+                    }
+
+                    $value = intval($value);
+                    break;
+
+                case Knit::TYPE_FLOAT:
+                    $value = floatval($value);
+                    break;
+
+                case Knit::TYPE_ENUM:
+                    // cast booleans manually to ensure proper results (e.g. false casts to empty string) - numbers
+                    if ($value === false || $value === true) {
+                        $value = $value ? '1' : '0';
+                        break;
+                    }
+
+                    $value = strval($value);
+                    break;
+
+                default:
+                    // by default all properties are strings
+                    $value = strval($value);
+            }
+        }
+
+        return $value;
     }
 
 }

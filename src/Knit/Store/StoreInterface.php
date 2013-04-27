@@ -13,6 +13,8 @@ namespace Knit\Store;
 
 use Psr\Log\LoggerInterface;
 
+use Knit\Criteria\CriteriaExpression;
+
 interface StoreInterface
 {
 
@@ -24,11 +26,11 @@ interface StoreInterface
      * Should return array of results.
      * 
      * @param string $collection Name of the collection in which to look for.
-     * @param array $criteria [optional] Criteria array.
+     * @param CriteriaExpression $criteria [optional] Criteria on which to find.
      * @param array $params [optional] Other parameters, like orderBy or orderDir.
      * @return array
      */
-    public function find($collection, array $criteria = array(), array $params = array());
+    public function find($collection, CriteriaExpression $criteria = null, array $params = array());
 
     /**
      * Counts objects within a collection.
@@ -36,11 +38,11 @@ interface StoreInterface
      * The $criteria array should conform to parsing of criteria (see elsewhere).
      * 
      * @param string $collection Name of the collection in which to look for.
-     * @param array $criteria [optional] Criteria array.
+     * @param CriteriaExpression $criteria [optional] Criteria on which to count.
      * @param array $params [optional] Other parameters, like orderBy or orderDir.
      * @return int|array Either an int or an array of ints if used groupBy param.
      */
-    public function count($collection, array $criteria = array(), array $params = array());
+    public function count($collection, CriteriaExpression $criteria = null, array $params = array());
 
     /**
      * Creates an object with the given properties in the persistent store.
@@ -55,18 +57,18 @@ interface StoreInterface
      * Updates an object matching the $criteria with the given $properties.
      * 
      * @param string $collection Name of the collection in which to update.
-     * @param array $criteria [optional] Criteria array.
+     * CriteriaExpression $criteria [optional] Criteria on which to update.
      * @param array $properties Properties of the new object.
      */
-    public function update($collection, array $criteria, array $properties);
+    public function update($collection, CriteriaExpression $criteria = null, array $properties);
 
     /**
      * Deletes objects with the given $criteria from the collection.
      * 
      * @param string $collection Name of the collection from which to delete objects.
-     * @param array $criteria Criteria on which to delete objects.
+     * @param CriteriaExpression $criteria [optional] Criteria on which to delete.
      */
-    public function delete($collection, array $criteria);
+    public function delete($collection, CriteriaExpression $criteria = null);
 
     /**
      * Should return information about the collection structure.
