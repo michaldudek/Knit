@@ -201,10 +201,11 @@ class Repository
         $this->checkEntityOwnership($entity);
 
         $idProperty = $this->getIdProperty();
-        
-        $this->store->update($this->collection, $this->getPropertiesForStore($entity), array(
+        $criteria = $this->parseCriteriaArray(array(
             $idProperty => $entity->_getId()
         ));
+        
+        $this->store->update($this->collection, $criteria, $this->getPropertiesForStore($entity));
     }
     
     /**
@@ -216,10 +217,11 @@ class Repository
         $this->checkEntityOwnership($entity);
 
         $idProperty = $this->getIdProperty();
-
-        $this->store->delete($this->collection, array(
+        $criteria = $this->parseCriteriaArray(array(
             $idProperty => $entity->_getId()
         ));
+
+        $this->store->delete($this->collection, $criteria);
     }
 
     /**
@@ -247,6 +249,7 @@ class Repository
      * @param array $criteria Criteria on which to delete objects. Same as criteria passed to any other factory methods.
      */
     public function deleteOnCriteria(array $criteria) {
+        $criteria = $this->parseCriteriaArray($criteria);
         $this->store->delete($this->collection, $criteria);
     }
 
@@ -313,15 +316,18 @@ class Repository
      */
     protected function instantiateWithData(array $data = array()) {
         $entityClass = $this->entityClass;
-        $object = new $entityClass();
+        $entity = new $entityClass();
+
+        // store reference to this repository
+        $entity->_setRepository($this);
 
         // @todo Create pre instantiation event.
 
-        $object->_setProperties($data);
+        $entity->_setProperties($data);
 
         // @todo Create post instantiation event.
 
-        return $object;
+        return $entity;
     }
 
     /**
@@ -330,19 +336,22 @@ class Repository
      * @param array $data [optional] Array of properties for the entity to have.
      * @return object
      */
-    public static function createWithData(array $data = array()) {
+    public function createWithData(array $data = array()) {
         $entityClass = $this->entityClass;
-        $object = new $entityClass();
+        $entity = new $entityClass();
+
+        // store reference to this repository
+        $entity->_setRepository($this);
         
         // @todo Create pre instantiation event.
         
         foreach($data as $var => $value) {
-            call_user_func_array(array($object, ObjectUtils::setter($var)), array($value));
+            call_user_func_array(array($entity, ObjectUtils::setter($var)), array($value));
         }
         
         // @todo Create post instantiation event.
 
-        return $object;
+        return $entity;
     }
 
     /*****************************************************

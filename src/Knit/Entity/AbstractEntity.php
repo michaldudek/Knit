@@ -13,6 +13,7 @@ namespace Knit\Entity;
 
 use MD\Foundation\Debug\Interfaces\Dumpable;
 use MD\Foundation\Utils\ObjectUtils;
+use MD\Foundation\Utils\StringUtils;
 
 use Knit\Entity\Repository;
 use Knit\Exceptions\StructureDefinedException;
@@ -52,7 +53,7 @@ abstract class AbstractEntity implements Dumpable
      */
     public function updateWithData(array $data) {
         // prevent updating the main key tho
-        $idProperty = $this->_getIdProperty();
+        $idProperty = $this->_getRepository()->getIdProperty();
         if (isset($data[$idProperty])) {
             unset($data[$idProperty]);
         }
@@ -97,7 +98,7 @@ abstract class AbstractEntity implements Dumpable
      * @return mixed
      */
     public function _getId() {
-        return call_user_func(array($this, ObjectUtils::getter($this->_getIdProperty())));
+        return call_user_func(array($this, ObjectUtils::getter($this->_getRepository()->getIdProperty())));
     }
     
     /**
@@ -106,7 +107,7 @@ abstract class AbstractEntity implements Dumpable
      * @param mixed $value
      */
     public function _setId($value) {
-        return call_user_func(array($this, ObjectUtils::setter($this->_getIdProperty())));
+        return call_user_func_array(array($this, ObjectUtils::setter($this->_getRepository()->getIdProperty())), array($value));
     }
 
     /**
@@ -145,7 +146,6 @@ abstract class AbstractEntity implements Dumpable
      * @param mixed $value Value to set to.
      */
     public function _setProperty($property, $value) {
-        // set the property in properties array
         $this->_properties[$property] = static::_castPropertyType($property, $value);
     }
     
@@ -248,17 +248,23 @@ abstract class AbstractEntity implements Dumpable
         $type = strtolower(substr($methodName, 0, 3));
         
         // called a setter or a getter ?
-        if (($type == 'set') OR ($type == 'get')) {
+        if (($type == 'set') || ($type == 'get')) {
             $property = lcfirst(substr($methodName, 3));
+
+            // decide on property name by checking if a camelCase exists first
+            // and if not trying the under_scored
+            $property = ($this->_hasProperty($property)) ? $property : StringUtils::toSeparated($property, '_');
 
             if ($type == 'set') {
                 // if a setter then require at least one argument
-                if (!isset($arguments[1])) {
+                if (!isset($arguments[0])) {
                     $trace = debug_backtrace();
-                    trigger_error('Function "'. $this->__getClass() .'::'. $methodName .'()" requires one argument, none given in '. $trace[0]['file'] .' on line '. $trace[0]['line'], E_USER_ERROR);
+                    $file = isset($trace[0]['file']) ? $trace[0]['file'] : 'unknown';
+                    $line = isset($trace[0]['line']) ? $trace[0]['line'] : 'unknown';
+                    trigger_error('Function "'. $this->__getClass() .'::'. $methodName .'()" requires one argument, none given in '. $file .' on line '. $line, E_USER_ERROR);
                 }
 
-                return $this->_setProperty($property, @$arguments[1]);
+                return $this->_setProperty($property, $arguments[0]);
             } else if ($type == 'get') {
                 return $this->_getProperty($property);
             }
@@ -267,6 +273,8 @@ abstract class AbstractEntity implements Dumpable
         // called an isser?
         if (strtolower(substr($methodName, 0, 2)) === 'is') {
             $property = lcfirst(substr($methodName, 2));
+            $property = ($this->_hasProperty($property)) ? $property : StringUtils::toSeparated($property, '_');
+
             $value = $this->_getProperty($property);
             // cast '0' as false
             return (!$value || $value == '0') ? false : true;
@@ -305,7 +313,7 @@ abstract class AbstractEntity implements Dumpable
     
         // undefined method called!
         $trace = debug_backtrace();
-        trigger_error('Call to undefined entity\'s method '. $this->__getClass() .'::'. $methodName .'() in '. $trace[0]['file'] .' on line '. $trace[0]['line'], E_USER_ERROR);
+        trigger_error('Call to undefined method '. $this->__getClass() .'::'. $methodName .'() in '. $trace[0]['file'] .' on line '. $trace[0]['line'], E_USER_ERROR);
         return null;
     }
     
@@ -333,6 +341,25 @@ abstract class AbstractEntity implements Dumpable
         return null;
     }
     */
+   
+    /*****************************************************
+     * ACTIVE RECORD
+     *****************************************************/
+    // functions that cause Entities to behave like Active Record, ie. allow to persist themselves
+    
+    /**
+     * Saves the entity in its persistent store.
+     */
+    public function save() {
+        $this->_getRepository()->save($this);
+    }
+
+    /**
+     * Removes the entity from its persistent store.
+     */
+    public function delete() {
+        $this->_getRepository()->delete($this);
+    }
 
     /*****************************************************
      * SETTERS AND GETTERS

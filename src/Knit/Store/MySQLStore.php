@@ -67,11 +67,16 @@ class MySQLStore implements StoreInterface
     /*****************************************************
      * STORE INTERFACE IMPLEMENTATION
      *****************************************************/
+    /**
+     * Performs a SELECT query on the given table.
+     * 
+     * @param string $table Name of the table to select from.
+     * @param CriteriaExpression $criteria Criteria on which to select.
+     * @param array $params [optional] Paramaters of the select (like order, start, limit, groupby, etc.)
+     * @return array
+     */
     public function find($table, CriteriaExpression $criteria = null, array $params = array()) {
         $criteria = $this->parseCriteria($criteria, $parameters);
-
-        //dump($parameters);
-        //dump($criteria);
         
         // parse the params
         $orderBy        = isset($params['orderBy'])     ? $params['orderBy']                    : false;
@@ -90,18 +95,88 @@ class MySQLStore implements StoreInterface
         return $this->query($query, $parameters, $forceMulti);
     }
 
+    /**
+     * Performs a SELECT COUNT(*) query on the given table.
+     * 
+     * @param string $table Name of the table to select from.
+     * @param CriteriaExpression $criteria Criteria on which to select.
+     * @param array $params [optional] Paramaters of the select (like order, start, limit, groupby, etc.)
+     * @return array
+     */
     public function count($table, CriteriaExpression $criteria = null, array $params = array()) {
-        return 0;
+        $criteria = $this->parseCriteria($criteria, $parameters);
+        
+        // parse the params
+        $groupBy        = isset($params['groupBy'])     ? $params['groupBy']                    : false;
+        $orderBy        = isset($params['orderBy'])     ? $params['orderBy']                    : false;
+        $orderDir       = ((isset($params['orderDir'])) AND in_array(strtolower($params['orderDir']), array('asc', 'desc')))
+            ? $params['orderDir'] : 'asc';
+        $start          = isset($params['start'])       ? intval($params['start'])              : 0;
+        $limit          = isset($params['limit'])       ? intval($params['limit'])              : false;
+        
+        // and finally write the SQL query
+        $query = 'SELECT COUNT(*) AS `count` FROM `'. $table .'` '
+            . ($criteria           ? ' WHERE '. $criteria                                   : null)
+            . ($groupBy            ? ' GROUP BY `'. $groupBy .'` '                          : null)
+            . ($orderBy            ? ' ORDER BY `'. $orderBy .'` '. $orderDir               : null)
+            . ($limit              ? ' LIMIT '. $start .', '. $limit                        : null);
+
+        $result = $this->query($query, array(), true);
+        return ($groupBy) ? $result : intval($result[0]['count']);
     }
 
-    public function add($table, array $properties) {
-        return 0;
+    /**
+     * Performs an INSERT query with the given data to the given table.
+     * 
+     * @param string $table Name of the table to insert into.
+     * @param array $data Data that should be inserted.
+     * @return int ID of the inserted row.
+     */
+    public function add($table, array $data) {
+        $parameters = array();
+        foreach($data as $field => $value) {
+            $parameters[] = ':'. $field;
+        }
+
+        $query = 'INSERT INTO `'. $table .'` (`'. implode('`,`', array_keys($data)) .'`) VALUES ('. implode(', ', $parameters) .')';
+
+        $this->query($query, $data);
+
+        return intval($this->connection->lastInsertId());
     }
 
-    public function update($table, CriteriaExpression $criteria = null, array $values) {
+    /**
+     * Performs an UPDATE query on the given table with the given criteria.
+     * 
+     * @param string $table Name of the table which to update.
+     * @param CriteriaExpression $criteria Criteria on which to update.
+     * @param array $data Data that should be updated.
+     */
+    public function update($table, CriteriaExpression $criteria = null, array $data) {
+        $criteria = $this->parseCriteria($criteria, $parameters);
+        $fields = array();
+
+        foreach($data as $field => $value) {
+            $fields[] = '`'. $field .'` = :set__'. $field;
+            $parameters['set__'. $field] = $value;
+        }
+
+        $query = 'UPDATE `'. $table .'` SET '. implode(', ', $fields) .' WHERE '. $criteria;
+
+        $this->query($query, $parameters);
     }
 
+    /**
+     * Performs a DELETE query on the given table with the given criteria.
+     * 
+     * @param string $table Name of the table from which to delete.
+     * @param CriteriaExpression $criteria Criteria on which to delete.
+     */
     public function delete($table, CriteriaExpression $criteria = null) {
+        $criteria = $this->parseCriteria($criteria, $parameters);
+
+        $query = 'DELETE FROM `'. $table .'` WHERE '. $criteria;
+        $this->query($query, $parameters);
     }
 
     /**
@@ -315,6 +390,10 @@ class MySQLStore implements StoreInterface
      * @throws InvalidOperatorException When couldn't handle an operator either because of lack of implementation or MySQL not supporting that operator.
      */
     protected function parseCriteria(CriteriaExpression $criteria = null, &$parameters = array()) {
+        if (!is_array($parameters)) {
+            $parameters = array();
+        }
+        
         if (is_null($criteria)) {
             return '(1)';
         }

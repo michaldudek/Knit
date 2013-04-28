@@ -7,57 +7,6 @@ class MDModel
      * FACTORY METHODS
      * These can be overwritten.
      */
-
-    /**
-     * Parses the sent selection criteria with possibility to define the logic that would join them,
-     * i.e. AND or OR between each argument of the function.
-     * @return string Parsed SQL WHERE statement.
-     * @param string $logic[optional] Logic to be used. 'AND' or 'OR'. Default: 'AND'. Can be ommitted.
-     * @param array $criteria[optional] A set of criteria.
-     * @param array ... You can send as many criteria as you wish.
-     */
-    public static function criteria() {
-        // get the function's arguments
-        $arguments = func_get_args();
-
-        // check if there was a logic set that will be used to join all the arguments together
-        $logic = MDLogicAnd;
-        if (isset($arguments[0]) AND !is_array($arguments[0]) AND in_array(strtoupper($arguments[0]), array(MDLogicAnd, MDLogicOr))) {
-            $logic = $arguments[0];
-            array_shift($arguments);
-        }
-
-        $db = self::_getDatabase();
-
-        $criteria = array();
-        foreach($arguments as $fields) {
-            $criteria[] = '('. NL . $db->parseCriteria($fields) . NL .')';
-        }
-
-        if (empty($criteria)) {
-            return '(1)';
-        }
-
-        $criteria = '('. NL . $db->parseCriteria($criteria, $logic) . NL .')';
-        return $criteria;
-    }
-
-    /**
-     * Very similar to MDModel::criteria() except that the order of arguments is different.
-     * @return string Parsed SQL WHERE statement.
-     * @param array $criteria A set of criteria to be joined using the specified logic.
-     * @param string $logic[optional] Logic to be used. 'AND' or 'OR'. Default: 'AND'.
-     */
-    public static function where($criteria, $logic = 'AND') {
-        $arguments = array($logic);
-        foreach($criteria as $criterium) {
-            $arguments[] = $criterium;
-        }
-
-        $where = call_user_func_array(array(get_called_class(), 'criteria'), $arguments);
-        return $where;
-    }
-    
     /*
      * SYSTEM METHODS
      */
