@@ -18,6 +18,8 @@ use PDOStatement;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
+use MD\Foundation\Debug\Debugger;
+use MD\Foundation\Debug\Timer;
 use MD\Foundation\Exceptions\NotFoundException;
 use MD\Foundation\Utils\ArrayUtils;
 use MD\Foundation\Utils\StringUtils;
@@ -32,15 +34,53 @@ use Knit\Knit;
 class MySQLStore implements StoreInterface
 {
 
+    /**
+     * MySQL server host name.
+     * 
+     * @var string
+     */
     protected $hostname;
+
+    /**
+     * MySQL server user name.
+     * 
+     * @var string
+     */
     protected $username;
+
+    /**
+     * MySQL server user password.
+     * 
+     * @var string
+     */
     protected $password;
+
+    /**
+     * MySQL database name.
+     * 
+     * @var string
+     */
     protected $database;
 
+    /**
+     * PDO connection to the database.
+     * 
+     * @var PDO
+     */
     protected $connection;
 
+    /**
+     * The store logger.
+     * 
+     * @var LoggerInterface
+     */
     protected $logger;
 
+    /**
+     * Map of MySQL types to Knit types.
+     * 
+     * @var array
+     */
     protected static $mysqlToKnitType = array(
         'tinyint' => Knit::TYPE_INT,
         'smallint' => Knit::TYPE_INT,
@@ -55,6 +95,14 @@ class MySQLStore implements StoreInterface
         'enum' => Knit::TYPE_ENUM
     );
 
+    /**
+     * Constructor.
+     * 
+     * @param string $hostname MySQL server host name.
+     * @param string $username MySQL server user name.
+     * @param string $password MySQL server user password.
+     * @param string $database MySQL database name.
+     */
     public function __construct($hostname, $username, $password, $database) {
         $this->hostname = $hostname;
         $this->username = $username;
@@ -248,6 +296,8 @@ class MySQLStore implements StoreInterface
         if (!$this->isConnected()) {
             $this->connect();
         }
+
+        $timer = new Timer();
         
         try {
             $statement = $this->connection->prepare(trim($sql));
@@ -278,6 +328,7 @@ class MySQLStore implements StoreInterface
         // finally log the query
         $this->logQuery($statement, array(
             'type' => $type,
+            'executionTime' => $timer->stop(),
             'affected' => $rowCount,
             'parameters' => $parameters
         ));
@@ -298,11 +349,44 @@ class MySQLStore implements StoreInterface
     public function logQuery(PDOStatement $statement, array $context = array(), $error = false) {
         $message = $statement->queryString;
         $context = array_merge($context, array(
-            'query' => $statement->queryString
+            'query' => $statement->queryString,
+            '_tags' => array(
+                'mysql', $context['type']
+            )
         ));
 
+        // add trace but only actually if we're logging it, as this may be a heavy operation
+        if (!$this->logger instanceof NullLogger) {
+            $knitDir = realpath(dirname(__FILE__) .'/../../../');
+            $trace = Debugger::getPrettyTrace(debug_backtrace());
+
+            $caller = null;
+
+            foreach($trace as $call) {
+                // first occurence of a file that is outside of Knit means close to getting the caller
+                if (stripos($call['file'], $knitDir) !== 0) {
+                    $caller = $call;
+                    break;
+                }
+            }
+
+            if ($caller) {
+                dump($caller);
+                $context['caller'] = array(
+                    'file' => $caller['file']
+                );
+            }
+        }
+
+        // if error occurred then log as error
         if ($error) {
             $this->logger->error($message, $context);
+
+        // if execution time was higher than 0.5 then we heave a really slow quer, so notice that
+        } else if (isset($context['executionTime']) && $context['executionTime'] >= 0.5) { // should be probably much less than 0.5 or configurable (pref)
+            $this->logger->notice($message, $context);
+
+        // otherwise just log normally
         } else {
             $this->logger->info($message, $context);
         }
