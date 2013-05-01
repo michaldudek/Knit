@@ -13,6 +13,7 @@ namespace Knit\Entity;
 
 use MD\Foundation\Debug\Debugger;
 use MD\Foundation\Utils\ObjectUtils;
+use MD\Foundation\Utils\StringUtils;
 
 use Knit\Criteria\CriteriaExpression;
 use Knit\Entity\AbstractEntity;
@@ -119,11 +120,18 @@ class Repository
     /**
      * Will find one instance of the entity found by the given id property.
      * 
-     * @param mixed $id Value of the ID.
+     * @param mixed $id Value of the ID. Can also be an array of ID's.
      * @return object|null
      */
     public function findById($id) {
         $idProperty = $this->idProperty;
+
+        // if ID is an array then search for multiple entities
+        if (is_array($id)) {
+            return $this->find(array(
+                $idProperty => $id
+            ));
+        }
 
         return $this->findOne(array(
             $idProperty => $id
@@ -157,6 +165,59 @@ class Repository
      */
     public function count(array $criteria = array(), array $params = array()) {
         return $this->store->count($this->collection, $this->parseCriteriaArray($criteria), $params);
+    }
+
+    /**
+     * Create "magic" functions for findBy* and fineOneBy*
+     * 
+     * @param string $name Method name
+     * @param array $arguments Array of arguments.
+     * @return AbstractEntity|array|null
+     */
+    public function __call($methodName, $arguments) {
+        $structure = $this->getEntityStructure();
+
+        // is it "findBy*" magic function?
+        if (stripos($methodName, 'findBy') === 0) {
+            // require at least one argument
+            if (!isset($arguments[0])) {
+                $trace = debug_backtrace();
+                $file = isset($trace[0]['file']) ? $trace[0]['file'] : 'unknown';
+                $line = isset($trace[0]['line']) ? $trace[0]['line'] : 'unknown';
+                trigger_error('Function "'. get_called_class() .'::'. $methodName .'()" requires one argument, none given in '. $file .' on line '. $line, E_USER_ERROR);
+            }
+
+            $property = lcfirst(substr($methodName, 6));
+            $property = (isset($structure[$property])) ? $property : StringUtils::toSeparated($property, '_');
+
+            // redirect to the "find" method
+            return $this->find(array(
+                $property => $arguments[0]
+            ));
+        
+        // or is it "fineOneBy*" magic function?
+        } else if (stripos($methodName, 'findOneBy') === 0) {
+            // require at least one argument
+            if (!isset($arguments[0])) {
+                $trace = debug_backtrace();
+                $file = isset($trace[0]['file']) ? $trace[0]['file'] : 'unknown';
+                $line = isset($trace[0]['line']) ? $trace[0]['line'] : 'unknown';
+                trigger_error('Function "'. get_called_class() .'::'. $methodName .'()" requires one argument, none given in '. $file .' on line '. $line, E_USER_ERROR);
+            }
+
+            $property = lcfirst(substr($methodName, 9));
+            $property = (isset($structure[$property])) ? $property : StringUtils::toSeparated($property, '_');
+
+            // redirect to the "findOne" method
+            return $this->findOne(array(
+                $property => $arguments[0]
+            ));
+        }
+
+        // undefined method called!
+        $trace = debug_backtrace();
+        trigger_error('Call to undefined method '. get_called_class() .'::'. $methodName .'() in '. $trace[0]['file'] .' on line '. $trace[0]['line'], E_USER_ERROR);
+        return null;
     }
 
     /*****************************************************
