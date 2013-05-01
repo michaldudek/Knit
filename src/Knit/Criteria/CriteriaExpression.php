@@ -37,8 +37,6 @@ class CriteriaExpression
      * Constructor.
      * 
      * @param array $criteria [optional] Array of criteria that need to be converted into proper expressions.
-     * 
-     * @todo Handle :or operator - split value into expressions.
      */
     public function __construct(array $criteria = array(), $logic = null) {
         // parse the logic - AND is default and only allow for AND or OR - throw exceptions on anything else

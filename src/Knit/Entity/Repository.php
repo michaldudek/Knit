@@ -20,9 +20,6 @@ use Knit\Exceptions\StructureNotDefinedException;
 use Knit\Store\StoreInterface;
 use Knit\Knit;
 
-/**
- * @todo Magic findBy* and fineOneBy* methods.
- */
 class Repository
 {
 
@@ -263,9 +260,6 @@ class Repository
      * @return array
      * 
      * @throws StructureNotDefinedException When couldn't find any definition of the structure.
-     * 
-     * @todo Validate the structure somehow.
-     * @todo Cache the structure.
      */
     protected function getEntityStructure() {
         $entityClass = $this->entityClass;
@@ -321,11 +315,7 @@ class Repository
         // store reference to this repository
         $entity->_setRepository($this);
 
-        // @todo Create pre instantiation event.
-
         $entity->_setProperties($data);
-
-        // @todo Create post instantiation event.
 
         return $entity;
     }
@@ -343,13 +333,9 @@ class Repository
         // store reference to this repository
         $entity->_setRepository($this);
         
-        // @todo Create pre instantiation event.
-        
         foreach($data as $var => $value) {
             call_user_func_array(array($entity, ObjectUtils::setter($var)), array($value));
         }
-        
-        // @todo Create post instantiation event.
 
         return $entity;
     }

@@ -240,9 +240,6 @@ abstract class AbstractEntity implements Dumpable
      * @param string $name Method name
      * @param array $arguments Array of arguments.
      * @return mixed The requested property value for a getter, null for anything else.
-     * 
-     * @todo Implement adders (really?).
-     * @todo Implement validators (really?).
      */
     final public function __call($methodName, $arguments) {
         $type = strtolower(substr($methodName, 0, 3));
@@ -282,7 +279,6 @@ abstract class AbstractEntity implements Dumpable
         
         // called an adder?
         /*
-         * @todo
         if ($type == 'add') {
             $property = lcfirst(substr($name, 3));
             // adders can only be called on properties not defined in the core model
@@ -303,7 +299,6 @@ abstract class AbstractEntity implements Dumpable
         
         // or maybe called a validator
         /*
-         * @todo
         if (substr($name, 0, 8) == 'validate') {
             $property = lcfirst(substr($name, 8));
             
@@ -322,9 +317,7 @@ abstract class AbstractEntity implements Dumpable
      * 
      * @param object $name
      * @param object $arguments
-     * @return mixed 
-     * 
-     * @todo
+     * @return mixed
      */
     /*
     final public static function __callStatic($name, $arguments) {

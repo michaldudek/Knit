@@ -294,11 +294,6 @@ class MySQLStore implements StoreInterface
      * @param PDOStatement $statement Query to be logged.
      * @param array $context [optional] Context of the query (like execution time) that can't be read from the PDOStatement.
      * @param bool $error [optional] Has an error occurred on this query? Default: false.
-     * 
-     * @todo Improve logging of the queries by:
-     *       - adding tags,
-     *       - adding execution time,
-     *       - adding trace or trying to figure out where it was executed.
      */
     public function logQuery(PDOStatement $statement, array $context = array(), $error = false) {
         $message = $statement->queryString;

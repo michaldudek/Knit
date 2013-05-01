@@ -13,10 +13,6 @@ namespace Knit\Criteria;
 
 use Knit\Exceptions\InvalidOperatorException;
 
-/**
- * @todo Add LIKE / SEARCH operator
- * @todo Add REGEXP operator.
- */
 class FieldValue
 {
 
