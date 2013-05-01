@@ -371,10 +371,7 @@ class MySQLStore implements StoreInterface
             }
 
             if ($caller) {
-                dump($caller);
-                $context['caller'] = array(
-                    'file' => $caller['file']
-                );
+                $context['caller'] = $caller;
             }
         }
 
