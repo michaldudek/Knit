@@ -2,11 +2,7 @@
 
 class MDModel
 {
-    
-    /*
-     * FACTORY METHODS
-     * These can be overwritten.
-     */
+
     /*
      * SYSTEM METHODS
      */
