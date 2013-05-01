@@ -132,7 +132,6 @@ class MySQLStore implements StoreInterface
             ? $params['orderDir'] : 'asc';
         $start          = isset($params['start'])       ? intval($params['start'])              : 0;
         $limit          = isset($params['limit'])       ? intval($params['limit'])              : false;
-        $forceMulti     = ($limit == 1)                 ? false                                 : true;
         
         // and finally write the SQL query
         $query = 'SELECT * FROM `'. $table .'` '
@@ -140,7 +139,7 @@ class MySQLStore implements StoreInterface
             . ($orderBy            ? ' ORDER BY `'. $orderBy .'` '. $orderDir               : null)
             . ($limit              ? ' LIMIT '. $start .', '. $limit                        : null);
 
-        return $this->query($query, $parameters, $forceMulti);
+        return $this->query($query, $parameters, true);
     }
 
     /**
@@ -351,9 +350,13 @@ class MySQLStore implements StoreInterface
         $context = array_merge($context, array(
             'query' => $statement->queryString,
             '_tags' => array(
-                'mysql', $context['type']
+                'mysql'
             )
         ));
+
+        if (isset($context['type'])) {
+            $context['_tags'][] = $context['type'];
+        }
 
         // add trace but only actually if we're logging it, as this may be a heavy operation
         if (!$this->logger instanceof NullLogger) {
