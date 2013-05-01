@@ -15,11 +15,28 @@ use MD\Foundation\Debug\Debugger;
 use MD\Foundation\Utils\ObjectUtils;
 use MD\Foundation\Utils\StringUtils;
 
+use Splot\EventManager\EventManager;
+
 use Knit\Criteria\CriteriaExpression;
 use Knit\Entity\AbstractEntity;
 use Knit\Exceptions\StructureNotDefinedException;
 use Knit\Store\StoreInterface;
 use Knit\Knit;
+
+use Knit\Events\WillAddEntity;
+use Knit\Events\DidAddEntity;
+use Knit\Events\WillBindDataToEntity;
+use Knit\Events\DidBindDataToEntity;
+use Knit\Events\WillCreateEntity;
+use Knit\Events\DidCreateEntity;
+use Knit\Events\WillDeleteEntity;
+use Knit\Events\DidDeleteEntity;
+use Knit\Events\WillReadFromStore;
+use Knit\Events\DidReadFromStore;
+use Knit\Events\WillSaveEntity;
+use Knit\Events\DidSaveEntity;
+use Knit\Events\WillUpdateEntity;
+use Knit\Events\DidUpdateEntity;
 
 class Repository
 {
@@ -57,6 +74,13 @@ class Repository
     protected $idProperty = 'id';
 
     /**
+     * Event manager.
+     * 
+     * @var EventManager
+     */
+    protected $eventManager;
+
+    /**
      * Constructor.
      * 
      * @param string $entityClass Class name of the assigned entity that this repository will be managing.
@@ -72,6 +96,9 @@ class Repository
             throw new \RuntimeException('No collection defined for entity "'. $entityClass .'". Either pass it as 3rd argument of repository constructor or set static "'. $entityClass .'::$_collection" variable.');
         }
 
+        // instantiate event manager for this repository
+        $this->eventManager = new EventManager();
+
         // load info about the entity structure
         $this->getEntityStructure();
     }
@@ -80,41 +107,51 @@ class Repository
      * FACTORY METHODS
      *****************************************************/
     /**
-     * Return an array of objects based on the given criteria and parameters.
+     * Return an array of entities based on the given criteria and parameters.
      * 
      * @param array $criteria [optional] Array of criteria.
      * @param array $params [optional] Array of optional parameters (like start, limit, etc).
-     * @return array Array of requested objects.
+     * @return array Array of requested entities.
      */
     public function find(array $criteria = array(), array $params = array()) {
-        $objects = array();
-        
+        $event = new WillReadFromStore($criteria, $params);
+        if ($this->getEventManager()->trigger($event)) {
+            return array();
+        }
+
+        $criteria = $event->getCriteria();
+        $params = $event->getParams();
         $result = $this->store->find($this->collection, $this->parseCriteriaArray($criteria), $params);
         
+        $entities = array();
         foreach($result as $item) {
-            $objects[] = $this->instantiateWithData($item);
+            $entities[] = $this->instantiateWithData($item);
         }
+
+        $this->getEventManager()->trigger(new DidReadFromStore($entities));
         
-        return $objects;
+        return $entities;
     }
     
     /**
      * Will find one instance of the entity based on passed criteria.
      * 
      * @param array $criteria [optional] Array of criteria.
-     * @param array $params [optional] Array of optional parameters (like start, limit, etc).
-     * @return object|null
+     * @param array $params [optional] Array of optional parameters.
+     * @return AbstractEntity|null
      */
     public function findOne(array $criteria = array(), array $params = array()) {
-        $result = $this->store->find($this->collection, $this->parseCriteriaArray($criteria), array_merge($params, array(
+        $entities = $this->find($criteria, array_merge($params, array(
             'limit' => 1
         )));
-        
-        if (empty($result)) {
+
+        if (empty($entities)) {
             return null;
         }
-        
-        return $this->instantiateWithData($result);
+
+        $entity = array_shift($entities);
+
+        return $entity;
     }
     
     /**
@@ -231,23 +268,42 @@ class Repository
     public function save(AbstractEntity $entity) {
         $this->checkEntityOwnership($entity);
 
+        if ($this->getEventManager()->trigger(new WillSaveEntity($entity))) {
+            return;
+        }
+
         if ($entity->_getId()) {
             $this->update($entity);
         } else {
             $this->add($entity);
         }
+
+        $this->getEventManager()->trigger(new DidSaveEntity($entity));
     }
     
     /**
      * Will insert the entity as a new instance in its persistent store.
      * 
      * @param AbstractEntity $entity
+     * 
+     * @throws \RuntimeException When trying to add an entity that has to persistent properties.
      */
     public function add(AbstractEntity $entity) {
         $this->checkEntityOwnership($entity);
         
-        $id = $this->store->add($this->collection, $this->getPropertiesForStore($entity));
+        if ($this->getEventManager()->trigger(new WillAddEntity($entity))) {
+            return;
+        }
+
+        $properties = $this->getPropertiesForStore($entity);
+        if (empty($properties)) {
+            throw new \RuntimeException('Cannot add an entity "'. $this->entityClass .'" with no persistent properties to a persistent store.');
+        }
+
+        $id = $this->store->add($this->collection, $properties);
         $entity->_setId($id);
+
+        $this->getEventManager()->trigger(new DidAddEntity($entity));
     }
     
     /**
@@ -258,12 +314,18 @@ class Repository
     public function update(AbstractEntity $entity) {
         $this->checkEntityOwnership($entity);
 
+        if ($this->getEventManager()->trigger(new WillUpdateEntity($entity))) {
+            return;
+        }
+
         $idProperty = $this->getIdProperty();
         $criteria = $this->parseCriteriaArray(array(
             $idProperty => $entity->_getId()
         ));
         
         $this->store->update($this->collection, $criteria, $this->getPropertiesForStore($entity));
+
+        $this->getEventManager()->trigger(new DidUpdateEntity($entity));
     }
     
     /**
@@ -274,12 +336,18 @@ class Repository
     public function delete(AbstractEntity $entity) {
         $this->checkEntityOwnership($entity);
 
+        if ($this->getEventManager()->trigger(new WillDeleteEntity($entity))) {
+            return;
+        }
+
         $idProperty = $this->getIdProperty();
         $criteria = $this->parseCriteriaArray(array(
             $idProperty => $entity->_getId()
         ));
 
         $this->store->delete($this->collection, $criteria);
+
+        $this->getEventManager()->trigger(new DidDeleteEntity($entity));
     }
 
     /**
@@ -293,12 +361,22 @@ class Repository
 
         foreach($entities as $entity) {
             $this->checkEntityOwnership($entity);
+
+            if ($this->getEventManager()->trigger(new WillDeleteEntity($entity))) {
+                continue;
+            }
+
             $entitiesIds[] = $entity->_getId();
         }
 
         $this->deleteOnCriteria(array(
             $idProperty => $entitiesIds
         ));
+
+        foreach($entities as $entity) {
+            $entity->_setId(null);
+            $this->getEventManager()->trigger(new DidDeleteEntity($entity));
+        }
     }
 
     /**
@@ -370,6 +448,10 @@ class Repository
      * @return object Instance of the entity.
      */
     protected function instantiateWithData(array $data = array()) {
+        $event = new WillBindDataToEntity($data);
+        $this->getEventManager()->trigger($event);
+        $data = $event->getData();
+
         $entityClass = $this->entityClass;
         $entity = new $entityClass();
 
@@ -378,6 +460,8 @@ class Repository
 
         $entity->_setProperties($data);
 
+        $this->getEventManager()->trigger(new DidBindDataToEntity($entity));
+
         return $entity;
     }
 
@@ -385,9 +469,13 @@ class Repository
      * Will create an instance of the entity and fill its properties with the passed data.
      * 
      * @param array $data [optional] Array of properties for the entity to have.
-     * @return object
+     * @return AbstractEntity
      */
     public function createWithData(array $data = array()) {
+        $event = new WillCreateEntity($data);
+        $this->getEventManager()->trigger($event);
+        $data = $event->getData();
+
         $entityClass = $this->entityClass;
         $entity = new $entityClass();
 
@@ -397,6 +485,8 @@ class Repository
         foreach($data as $var => $value) {
             call_user_func_array(array($entity, ObjectUtils::setter($var)), array($value));
         }
+
+        $this->getEventManager()->trigger(new DidCreateEntity($entity));
 
         return $entity;
     }
@@ -411,6 +501,15 @@ class Repository
      */
     public function getIdProperty() {
         return $this->idProperty;
+    }
+
+    /**
+     * Returns the event manager for this repository.
+     * 
+     * @return EventManager
+     */
+    public function getEventManager() {
+        return $this->eventManager;
     }
 
     /*****************************************************
