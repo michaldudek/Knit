@@ -221,6 +221,110 @@ class Repository
     }
 
     /**
+     * Joins one collection of entities (fetched from a store) into another (provided in 1st argument) by doing 1:1 join.
+     * 
+     * Example usage:
+     *     $repository->joinOne($users, Profile::__class(), 'userId', 'id', 'profile', array(), KnitOptions::EXCLUDE_EMPTY);
+     * This will fetch profiles from their store and join them into $users based on "profile.userId = user.id" and store the profiles in user's "profile" property.
+     * It will also remove all users that don't have profiles created from the $users collection.
+     * 
+     * @param array $entities Array collection of entities that new entities will be joined into. Passed via reference.
+     * @param Repository|string $joinEntity Name of an entity class that will be joined into the collection of entities. Can also be a repository instance.
+     * @param string $joinEntityProperty Name of a property from $joinEntity on which an "equals" check will be done, ie. "$joinEntityProperty = $entityProperty".
+     * @param string $entityProperty Name of a property from $entities that the $joinEntity will be checked against, ie. "$joinEntityProperty = $entityProperty".
+     * @param string $intoProperty Name of a property that the joined entities will be saved to in the parent property.
+     * @param array $criteria [optional] Array of any additional criteria on which the join entities will be fetched from their store.
+     * @param mixed $exclude [optional] Pass KnitOptions::EXCLUDE_EMPTY here if you want parent entities that don't have a joined entity to be removed from the collection. Default: will not be removed.
+     * @return array
+     */
+    public function joinOne(array &$entities, $joinEntity, $joinEntityProperty, $entityProperty, $intoProperty, array $criteria = array(), $exclude = null) {
+        // if empty collection then don't even bother
+        if (empty($entities)) {
+            return $entities;
+        }
+
+        // fetch the entities that we want to join
+        $joinEntityRepository = ($joinEntity instanceof self) ? $joinEntity : $this->knit->getRepository($joinEntity);
+
+        $joinEntities = $joinEntityRepository->find(array_merge($criteria, array(
+            $joinEntityProperty => ObjectUtils::keyFilter($entities, $entityProperty)
+        )));
+        $joinEntities = ObjectUtils::keyExplode($joinEntities, $joinEntityProperty);
+
+        // now that we have them, let's do the programmatic join
+        foreach($entities as $entity) {
+            if (isset($joinEntities[$entity->$entityProperty])) {
+                $entity->$intoProperty = $joinEntities[$entity->$entityProperty];
+            } else {
+                $entity->$intoProperty = null;
+            }
+        }
+
+        // remove those entities that couldn't be joined with anything
+        if ($exclude === KnitOptions::EXCLUDE_EMPTY) {
+            foreach($entities as $i => $entity) {
+                if (!isset($entity->$intoProperty) || empty($entity->$intoProperty)) {
+                    unset($entities[$i]);
+                }
+            }
+        }
+
+        return $entities;
+    }
+
+    /**
+     * Joins one collection of entities (fetched from a store) into another (provided in 1st argument) by doing 1:n join.
+     * 
+     * Example usage:
+     *     $repository->joinMany($users, Message::__class(), 'userId', 'id', 'messages', array('deleted' => false), array('orderBy' => 'date'));
+     * This will fetch all messages (that haven't been deleted) for the given users based on "message.userId = user.id" and store the messages in user's "messages" property.
+     * The messages will be ordered by "date" property.
+     * 
+     * @param array $entities Array collection of entities that new entities will be joined into. Passed via reference.
+     * @param Repository|string $joinEntity Name of an entity class that will be joined into the collection of entities. Can also be a repository instance.
+     * @param string $joinEntityProperty Name of a property from $joinEntity on which an "equals" check will be done, ie. "$joinEntityProperty = $entityProperty".
+     * @param string $entityProperty Name of a property from $entities that the $joinEntity will be checked against, ie. "$joinEntityProperty = $entityProperty".
+     * @param string $intoProperty Name of a property that the joined entities will be saved to in the parent property.
+     * @param array $criteria [optional] Array of any additional criteria on which the join entities will be fetched from their store.
+     * @param array $params [optional] Array of any additional params (like "orderBy") that will be used for fetching the join entities.
+     * @param mixed $exclude [optional] Pass KnitOptions::EXCLUDE_EMPTY here if you want parent entities that don't have a joined entity to be removed from the collection. Default: will not be removed.
+     * @return array
+     */
+    public function joinMany(array &$entities, $joinEntity, $joinEntityProperty, $entityProperty, $intoProperty, array $criteria = array(), array $params = array(), $exclude = null) {
+        // if empty collection then don't even bother
+        if (empty($entities)) {
+            return $entities;
+        }
+
+        // fetch the entities that we want to join
+        $joinEntityRepository = ($joinEntity instanceof self) ? $joinEntity : $this->knit->getRepository($joinEntity);
+
+        $joinEntities = $joinEntityRepository->find(array_merge($criteria, array(
+            $joinEntityProperty => ObjectUtils::keyFilter($entities, $entityProperty)
+        )), $params);
+        $joinEntities = ObjectUtils::categorizeByKey($joinEntities, $joinEntityProperty);
+
+        foreach($entities as $entity) {
+            if (isset($joinEntities[$entity->$entityProperty])) {
+                $entity->$intoProperty = $joinEntities[$entity->$entityProperty];
+            } else {
+                $entity->$intoProperty = array();
+            }
+        }
+
+        // remove those entities that couldn't be joined with anything
+        if ($exclude === KnitOptions::EXCLUDE_EMPTY) {
+            foreach($entities as $i => $entity) {
+                if (!isset($entity->$intoProperty) || empty($entity->$intoProperty)) {
+                    unset($entities[$i]);
+                }
+            }
+        }
+
+        return $entities;
+    }
+
+    /**
      * Create "magic" functions for findBy* and fineOneBy*
      * 
      * @param string $name Method name
