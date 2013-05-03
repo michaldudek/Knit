@@ -149,7 +149,7 @@ class FieldValue
      * @param mixed $value
      */
     protected function lteOperator($value) {
-        $this->operator = self::OPERATOR_GREATER_THAN_EQUAL;
+        $this->operator = self::OPERATOR_LOWER_THAN_EQUAL;
         $this->value = $value;
     }
 
