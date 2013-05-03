@@ -31,13 +31,6 @@ abstract class AbstractEntity implements Dumpable
     protected $_repository;
 
     /**
-     * Information about properties and structure of the entity.
-     * 
-     * @var array
-     */
-    protected static $_structure = array();
-
-    /**
      * The entity's properties.
      * 
      * @var array
@@ -62,32 +55,6 @@ abstract class AbstractEntity implements Dumpable
         foreach($data as $var => $value) {
             call_user_func_array(array($this, ObjectUtils::setter($var)), array($value));
         }
-    }
-
-    /**
-     * Returns the structure definition of the entity.
-     * 
-     * @return array
-     */
-    public static function _getStructure() {
-        return static::$_structure;
-    }
-
-    /**
-     * Sets structure definition for the entity.
-     * 
-     * This is usually called by the entity's repository and shouldn't be used.
-     * 
-     * @param array $structure The structure information.
-     * 
-     * @throws StructureDefinedException When trying to define the entity structure for the 2nd time.
-     */
-    public static function _setStructure(array $structure) {
-        if (!empty(static::$_structure)) {
-            throw new StructureDefinedException('Structure for entity "'. static::__class() .'" has already been defined.');
-        }
-
-        static::$_structure = $structure;
     }
 
     /*****************************************************
@@ -147,7 +114,7 @@ abstract class AbstractEntity implements Dumpable
      * @param mixed $value Value to set to.
      */
     public function _setProperty($property, $value) {
-        $this->_properties[$property] = static::_castPropertyType($property, $value);
+        $this->_properties[$property] = $this->_castPropertyType($property, $value);
     }
     
     /**
@@ -170,7 +137,8 @@ abstract class AbstractEntity implements Dumpable
      * @return bool
      */
     final public function _hasProperty($var) {
-        return (isset(static::$_structure[$var]));
+        $structure = $this->_getRepository()->getEntityStructure();
+        return (isset($structure[$var]));
     }
    
    /**
@@ -453,9 +421,11 @@ abstract class AbstractEntity implements Dumpable
      * @param mixed $value Value for the property to be casted.
      * @return mixed
      */
-    public static function _castPropertyType($property, $value) {
-        if (isset(static::$_structure[$property])) {
-            switch(static::$_structure[$property]['type']) {
+    public function _castPropertyType($property, $value) {
+        $structure = $this->_getRepository()->getEntityStructure();
+
+        if (isset($structure[$property])) {
+            switch($structure[$property]['type']) {
                 case KnitOptions::TYPE_INT:
                     // cast booleans manually to ensure proper results
                     if ($value === false || $value === true) {

@@ -43,6 +43,13 @@ class Repository
 {
 
     /**
+     * Reference to Knit instance.
+     * 
+     * @var Knit
+     */
+    protected $knit;
+
+    /**
      * Class name of the assigned entity.
      * 
      * @var string
@@ -75,6 +82,13 @@ class Repository
     protected $idProperty = 'id';
 
     /**
+     * Information about properties and structure of the entity.
+     * 
+     * @var array
+     */
+    protected $entityStructure = array();
+
+    /**
      * Event manager.
      * 
      * @var EventManager
@@ -88,7 +102,8 @@ class Repository
      * @param StoreInterface $store Store to use with this repository.
      * @param string $collection [optional] Name of the collection/table in the persistent store.
      */
-    public function __construct($entityClass, StoreInterface $store, $collection = null) {
+    public function __construct($entityClass, StoreInterface $store, Knit $knit, $collection = null) {
+        $this->knit = $knit;
         $this->entityClass = $entityClass;
         $this->store = $store;
         $this->collection = (isset($entityClass::$_collection) && !empty($entityClass::$_collection)) ? $entityClass::$_collection : $collection;
@@ -401,18 +416,25 @@ class Repository
      * 
      * @throws StructureNotDefinedException When couldn't find any definition of the structure.
      */
-    protected function getEntityStructure() {
+    public function getEntityStructure() {
+        if (!empty($this->entityStructure)) {
+            return $this->entityStructure;
+        }
+
+        // check for structure definition inside the entity class
         $entityClass = $this->entityClass;
-        $structure = $entityClass::_getStructure();
+        $structure = (isset($entityClass::$_structure) && is_array($entityClass::$_structure)) ? $entityClass::$_structure : array();
         if (!empty($structure)) {
+            // store the structure
+            $this->entityStructure = $structure;
             return $structure;
         }
 
         // no structure defined in the entity class so let's get it from the store
         $structure = $this->store->structure($this->collection);
         if (!empty($structure)) {
-            // store the structure in the entity class
-            $entityClass::_setStructure($structure);
+            // store the structure
+            $this->entityStructure = $structure;
             return $structure;
         }
 
@@ -549,6 +571,10 @@ class Repository
      * @return array
      */
     protected function castCriteriaArrayTypes(array $criteria = array()) {
+        $entityClass = $this->entityClass;
+        $dummyEntity = new $entityClass();
+        $dummyEntity->_setRepository($this);
+
         foreach($criteria as $key => $value) {
             // if value is an array and the key is a logic key then we have a sub property
             if (is_array($value) && ($key === KnitOptions::LOGIC_OR || $key === KnitOptions::LOGIC_AND)) {
@@ -562,11 +588,11 @@ class Repository
             // if value is an array then we also need to cast proper types on it
             if (is_array($value)) {
                 foreach($value as $k => $val) {
-                    $value[$k] = call_user_func_array(array($this->entityClass, '_castPropertyType'), array($property, $val));
+                    $value[$k] = $dummyEntity->_castPropertyType($property, $val);
                 }
                 $criteria[$key] = $value;
             } else {
-                $criteria[$key] = call_user_func_array(array($this->entityClass, '_castPropertyType'), array($property, $value));
+                $criteria[$key] = $dummyEntity->_castPropertyType($property, $value);
             }
         }
 

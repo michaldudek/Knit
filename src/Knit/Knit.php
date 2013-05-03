@@ -170,7 +170,7 @@ class Knit
         $store = $this->getStore($entityStore);
 
         // instantiate it
-        $repository = new $repositoryClass($entityClass, $store);
+        $repository = new $repositoryClass($entityClass, $store, $this);
 
         $this->registerRepository($entityClass, $repository);
         return $repository;
