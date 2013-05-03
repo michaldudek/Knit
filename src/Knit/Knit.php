@@ -20,14 +20,6 @@ use Knit\Store\StoreInterface;
 class Knit
 {
 
-    const TYPE_INT = 'int';
-    const TYPE_STRING = 'string';
-    const TYPE_FLOAT = 'float';
-    const TYPE_ENUM = 'enum';
-
-    const LOGIC_OR = '__OR__';
-    const LOGIC_AND = '__AND__';
-
     /**
      * Registry of all defined stores.
      * 

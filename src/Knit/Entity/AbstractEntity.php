@@ -17,6 +17,7 @@ use MD\Foundation\Utils\StringUtils;
 
 use Knit\Entity\Repository;
 use Knit\Exceptions\StructureDefinedException;
+use Knit\KnitOptions;
 use Knit\Knit;
 
 abstract class AbstractEntity implements Dumpable
@@ -455,7 +456,7 @@ abstract class AbstractEntity implements Dumpable
     public static function _castPropertyType($property, $value) {
         if (isset(static::$_structure[$property])) {
             switch(static::$_structure[$property]['type']) {
-                case Knit::TYPE_INT:
+                case KnitOptions::TYPE_INT:
                     // cast booleans manually to ensure proper results
                     if ($value === false || $value === true) {
                         $value = $value ? 1 : 0;
@@ -465,11 +466,11 @@ abstract class AbstractEntity implements Dumpable
                     $value = intval($value);
                     break;
 
-                case Knit::TYPE_FLOAT:
+                case KnitOptions::TYPE_FLOAT:
                     $value = floatval($value);
                     break;
 
-                case Knit::TYPE_ENUM:
+                case KnitOptions::TYPE_ENUM:
                     // cast booleans manually to ensure proper results (e.g. false casts to empty string) - numbers
                     if ($value === false || $value === true) {
                         $value = $value ? '1' : '0';

@@ -29,6 +29,7 @@ use Knit\Criteria\FieldValue;
 use Knit\Exceptions\StoreConnectionFailedException;
 use Knit\Exceptions\StoreQueryErrorException;
 use Knit\Store\StoreInterface;
+use Knit\KnitOptions;
 use Knit\Knit;
 
 class MySQLStore implements StoreInterface
@@ -82,17 +83,17 @@ class MySQLStore implements StoreInterface
      * @var array
      */
     protected static $mysqlToKnitType = array(
-        'tinyint' => Knit::TYPE_INT,
-        'smallint' => Knit::TYPE_INT,
-        'mediumint' => Knit::TYPE_INT,
-        'bigint' => Knit::TYPE_INT,
-        'int' => Knit::TYPE_INT,
-        'float' => Knit::TYPE_FLOAT,
-        'varchar' => Knit::TYPE_STRING,
-        'mediumtext' => Knit::TYPE_STRING,
-        'tinytext' => Knit::TYPE_STRING,
-        'text' => Knit::TYPE_STRING,
-        'enum' => Knit::TYPE_ENUM
+        'tinyint' => KnitOptions::TYPE_INT,
+        'smallint' => KnitOptions::TYPE_INT,
+        'mediumint' => KnitOptions::TYPE_INT,
+        'bigint' => KnitOptions::TYPE_INT,
+        'int' => KnitOptions::TYPE_INT,
+        'float' => KnitOptions::TYPE_FLOAT,
+        'varchar' => KnitOptions::TYPE_STRING,
+        'mediumtext' => KnitOptions::TYPE_STRING,
+        'tinytext' => KnitOptions::TYPE_STRING,
+        'text' => KnitOptions::TYPE_STRING,
+        'enum' => KnitOptions::TYPE_ENUM
     );
 
     /**
@@ -430,7 +431,7 @@ class MySQLStore implements StoreInterface
             throw new \RuntimeException('Could not resolve MySQL type "'. $type .'" to Knit type.');
         }
 
-        if ($name == Knit::TYPE_ENUM) {
+        if ($name == KnitOptions::TYPE_ENUM) {
             /*
              @todo match allowed values
             dump('enum');
@@ -573,7 +574,7 @@ class MySQLStore implements StoreInterface
         }
 
         // finally join all the items and return them
-        $logic = $criteria->getLogic() === CriteriaExpression::LOGIC_AND ? ' AND ' : ' OR ';
+        $logic = $criteria->getLogic() === KnitOptions::LOGIC_AND ? ' AND ' : ' OR ';
         return '( '. implode($logic, $items) .' )';
     }
 

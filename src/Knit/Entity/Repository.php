@@ -21,6 +21,7 @@ use Knit\Criteria\CriteriaExpression;
 use Knit\Entity\AbstractEntity;
 use Knit\Exceptions\StructureNotDefinedException;
 use Knit\Store\StoreInterface;
+use Knit\KnitOptions;
 use Knit\Knit;
 
 use Knit\Events\WillAddEntity;
@@ -550,7 +551,7 @@ class Repository
     protected function castCriteriaArrayTypes(array $criteria = array()) {
         foreach($criteria as $key => $value) {
             // if value is an array and the key is a logic key then we have a sub property
-            if (is_array($value) && ($key === Knit::LOGIC_OR || $key === Knit::LOGIC_AND)) {
+            if (is_array($value) && ($key === KnitOptions::LOGIC_OR || $key === KnitOptions::LOGIC_AND)) {
                 $criteria[$key] = $this->castCriteriaArrayTypes($value);
                 continue;
             }
