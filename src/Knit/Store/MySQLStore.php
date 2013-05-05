@@ -43,6 +43,13 @@ class MySQLStore implements StoreInterface
     protected $hostname;
 
     /**
+     * MySQL server port number.
+     * 
+     * @var int
+     */
+    protected $port;
+
+    /**
      * MySQL server user name.
      * 
      * @var string
@@ -103,9 +110,11 @@ class MySQLStore implements StoreInterface
      * @param string $username MySQL server user name.
      * @param string $password MySQL server user password.
      * @param string $database MySQL database name.
+     * @param int $port MongoDB server port number.
      */
-    public function __construct($hostname, $username, $password, $database) {
+    public function __construct($hostname, $username, $password, $database, $port = null) {
         $this->hostname = $hostname;
+        $this->port = $port;
         $this->username = $username;
         $this->password = $password;
         $this->database = $database;
@@ -270,7 +279,7 @@ class MySQLStore implements StoreInterface
         }
 
         try {
-            $this->connection = new PDO('mysql:host='. $this->hostname .';dbname='. $this->database, $this->username, $this->password);
+            $this->connection = new PDO('mysql:host='. $this->hostname . ($this->port ? ';port='. $this->port : '') .';dbname='. $this->database, $this->username, $this->password);
             // make it throw exceptions on errors
             $this->connection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         } catch(PDOException $e) {
