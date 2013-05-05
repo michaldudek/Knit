@@ -14,6 +14,7 @@ use MD\Foundation\Debug\Debugger;
 
 use Knit\Exceptions\RepositoryDefinedException;
 use Knit\Exceptions\StoreDefinedException;
+use Knit\Exceptions\NoStoreException;
 use Knit\Entity\Repository;
 use Knit\Store\StoreInterface;
 
@@ -139,7 +140,7 @@ class Knit
 
         // store with this name has to be defined as well
         if (!isset($this->stores[$store])) {
-            throw new NoStoreException('No store called "'. $name .'" defined. Register it in Knit before setting it for an entity.');
+            throw new NoStoreException('No store called "'. $store .'" defined. Register it in Knit before setting it for an entity.');
         }
 
         $this->entityStores[$entityClass] = $store;
