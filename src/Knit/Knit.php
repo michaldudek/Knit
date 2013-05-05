@@ -43,6 +43,13 @@ class Knit
     protected $entityStores = array();
 
     /**
+     * Map of entities and their custom repository classes.
+     * 
+     * @var array
+     */
+    protected $entityRepositories = array();
+
+    /**
      * Constructor.
      * 
      * @param StoreInterface $defaultStore Default store that will be used with all repositories (if no other store defined).
@@ -146,6 +153,14 @@ class Knit
         $this->entityStores[$entityClass] = $store;
     }
 
+    public function setRepositoryClassForEntity($entityClass, $repositoryClass) {
+        if (isset($this->entityRepositories[$entityClass])) {
+            throw new RepositoryDefinedException('Cannot overwrite already defined repository for an entity. Tried to set repository "'. $repositoryClass .'" for "'. $entityClass .'".');
+        }
+
+        $this->entityRepositories[$entityClass] = $repositoryClass;
+    }
+
     /**
      * Returns repository for the given entity.
      * 
@@ -157,13 +172,22 @@ class Knit
             return $this->repositories[$entityClass];
         }
 
+        $repositoryClass = null;
+
+        // check if there was a repository class for this entity defined
+        if (isset($this->entityRepositories[$entityClass])) {
+            $repositoryClass = $this->entityRepositories[$entityClass];
+        }
+
         // look for repository by appending 'Repository' to the end of class name
         // or if not found, use the generic Repository class
-        $repositoryClass = class_exists($entityClass .'Repository') ? $entityClass .'Repository' : 'Knit\Entity\Repository';
+        if (!$repositoryClass) {
+            $repositoryClass = class_exists($entityClass .'Repository') ? $entityClass .'Repository' : 'Knit\Entity\Repository';
+        }
 
         // must extend Repository
         if (!Debugger::isExtending($repositoryClass, 'Knit\Entity\Repository', true)) {
-            throw new \RuntimeException('Entity repository for "'. $entityClass .'" must extend "Knit\Entity\Repository".');
+            throw new \RuntimeException('Entity repository "'. $repositoryClass .'" for "'. $entityClass .'" must extend "Knit\Entity\Repository".');
         }
 
         // get store for this repository
