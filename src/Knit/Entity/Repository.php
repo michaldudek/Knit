@@ -527,7 +527,7 @@ class Repository
 
         // check for structure definition inside the entity class
         $entityClass = $this->entityClass;
-        $structure = (isset($entityClass::$_structure) && is_array($entityClass::$_structure)) ? $entityClass::$_structure : array();
+        $structure = $entityClass::_getStructure();
         if (!empty($structure)) {
             // store the structure
             $this->entityStructure = $structure;

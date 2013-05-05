@@ -41,6 +41,17 @@ abstract class AbstractEntity implements Dumpable
      * MAPPING
      *****************************************************/
     /**
+     * Implement this function if you want to keep the entity structure in the code instead of the database.
+     * 
+     * It should return a structure array.
+     * 
+     * @return array
+     */
+    public static function _getStructure() {
+        return array();
+    }
+
+    /**
      * Updates the entity with data sent in array.
      * 
      * @param array $data Updated entity properties.
