@@ -14,9 +14,26 @@ namespace Knit\Store;
 use Psr\Log\LoggerInterface;
 
 use Knit\Criteria\CriteriaExpression;
+use Knit\Entity\Repository;
 
 interface StoreInterface
 {
+
+    /**
+     * Constructor.
+     * 
+     * @param array $config Array of all information required to connect to the store (e.g. host, user, pass, database name, port, etc.)
+     */
+    public function __construct(array $config);
+
+    /**
+     * A "callback" method that is called by a repository after the store has been bound to it.
+     * 
+     * It can be used to set some custom settings on the repository that are store specific.
+     * 
+     * @param Repository $repository The repository to which this store has been bound.
+     */
+    public function didBindToRepository(Repository $repository);
 
     /**
      * Finds objects within a collection.
