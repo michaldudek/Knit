@@ -11,6 +11,8 @@
  */
 namespace Knit\Entity;
 
+use RuntimeException;
+
 use MD\Foundation\Debug\Debugger;
 use MD\Foundation\Utils\ObjectUtils;
 use MD\Foundation\Utils\StringUtils;
@@ -109,7 +111,7 @@ class Repository
         $this->collection = (isset($entityClass::$_collection) && !empty($entityClass::$_collection)) ? $entityClass::$_collection : $collection;
 
         if (empty($this->collection)) {
-            throw new \RuntimeException('No collection defined for entity "'. $entityClass .'". Either pass it as 3rd argument of repository constructor or set static "'. $entityClass .'::$_collection" variable.');
+            throw new RuntimeException('No collection defined for entity "'. $entityClass .'". Either pass it as 3rd argument of repository constructor or set static "'. $entityClass .'::$_collection" variable.');
         }
 
         // instantiate event manager for this repository
