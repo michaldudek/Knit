@@ -77,7 +77,7 @@ abstract class AbstractEntity implements Dumpable
      * @return mixed
      */
     public function _getId() {
-        return call_user_func(array($this, ObjectUtils::getter($this->_getRepository()->getIdProperty())));
+        return $this->_getProperty($this->_getRepository()->getIdProperty());
     }
     
     /**
@@ -86,7 +86,7 @@ abstract class AbstractEntity implements Dumpable
      * @param mixed $value
      */
     public function _setId($value) {
-        return call_user_func_array(array($this, ObjectUtils::setter($this->_getRepository()->getIdProperty())), array($value));
+        $this->_setProperty($this->_getRepository()->getIdProperty(), $value);
     }
 
     /**
