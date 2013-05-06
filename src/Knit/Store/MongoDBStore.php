@@ -11,6 +11,8 @@
  */
 namespace Knit\Store;
 
+use InvalidArgumentException;
+
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
@@ -24,11 +26,17 @@ use MD\Foundation\Exceptions\NotImplementedException;
 
 use Knit\Criteria\CriteriaExpression;
 use Knit\Criteria\FieldValue;
+use Knit\Entity\Repository;
 use Knit\Exceptions\StoreConnectionFailedException;
 use Knit\Exceptions\StoreQueryErrorException;
 use Knit\Store\StoreInterface;
 use Knit\KnitOptions;
 use Knit\Knit;
+
+use MongoClient;
+use MongoDB;
+use MongoId;
+use MongoConnectionException;
 
 class MongoDBStore implements StoreInterface
 {
@@ -76,27 +84,87 @@ class MongoDBStore implements StoreInterface
     protected $logger;
 
     /**
+     * MongoDB connected client.
+     * 
+     * @var MongoClient
+     */
+    protected $client;
+
+    /**
+     * MongoDB database.
+     * 
+     * @var MongoDB
+     */
+    protected $db;
+
+    /**
      * Constructor.
      * 
-     * @param string $hostname MongoDB server host name.
-     * @param string $username MongoDB server user name.
-     * @param string $password MongoDB server user password.
-     * @param string $database MongoDB database name.
-     * @param int $port MongoDB server port number.
+     * @param array $config Array of all information required to connect to the store (e.g. host, user, pass, database name, port, etc.)
      */
-    public function __construct($hostname, $username, $password, $database, $port = null) {
-        $this->hostname = $hostname;
-        $this->port = $port;
-        $this->username = $username;
-        $this->password = $password;
-        $this->database = $database;
+    public function __construct(array $config) {
+        // check for all required info
+        if (!ArrayUtils::checkValues($config, array('hostname', 'database'))) {
+            throw new InvalidArgumentException('"'. get_called_class() .'::__construct()"  expects 1st argument to be an array containing non-empty key "hostname", "'. implode('", "', array_keys($config)) .'" given.');
+        }
 
         $this->logger = new NullLogger();
+
+        try  {
+            // define MongoClient options
+            $options = array(
+                'db' => $config['database'],
+                'connect' => false
+            );
+
+            if (ArrayUtils::checkValues($config, array('username', 'password'))) {
+                $options['username'] = $config['username'];
+                $options['password'] = $config['password'];
+            }
+
+            if (isset($config['replica_set'])) {
+                $options['replicaSet'] = $config['replica_set'];
+            }
+
+            // define the DSN or connection definition string
+            $dsn = 'mongodb://'. $config['hostname'] . (isset($config['port']) ? ':'. $config['port'] : '');
+
+            // also add any additional hosts
+            if (isset($config['hosts'])) {
+                if (!is_array($config['hosts'])) {
+                    throw new InvalidArgumentException('MongoDBStore config option "hosts" must be an array of hosts, "'. Debugger::getType($options['hosts']) .'" given.');
+                }
+
+                foreach($config['hosts'] as $host) {
+                    if (!ArrayUtils::checkValues($host, array('hostname'))) {
+                        throw new InvalidArgumentException('MongoDBStore config option "hosts" must be an array of array hosts definitions with at least "hostname" key.');
+                    }
+
+                    $dsn .= ','. $host['hostname'] . (isset($host['port']) ? ':'. $host['port'] : '');
+                }
+            }
+
+            // finally connect and select the db
+            $this->client = new MongoClient($dsn, $options);
+            $this->db = $this->client->{$config['database']};
+
+        } catch(MongoConnectionException $e) {
+            throw new StoreConnectionFailedException($e->getMessage(), $e->getCode(), $e);
+        }
     }
 
     /*****************************************************
      * STORE INTERFACE IMPLEMENTATION
      *****************************************************/
+    /**
+     * Customizes repository for which it was set as a store by forcing entity's ID property to be "_id".
+     * 
+     * @param Repository $repository Repository to which this store has been bound.
+     */
+    public function didBindToRepository(Repository $repository) {
+        $repository->setIdProperty('_id');
+    }
+
     /**
      * Performs a SELECT query on the given collection.
      * 
@@ -106,7 +174,31 @@ class MongoDBStore implements StoreInterface
      * @return array
      */
     public function find($collection, CriteriaExpression $criteria = null, array $params = array()) {
-        throw new NotImplementedException();
+        $criteria = $this->parseCriteria($criteria);
+        $cursor = $this->db->{$collection}->find($criteria);
+
+        // apply params
+        if (isset($params['start'])) {
+            $cursor->skip(intval($params['start']));
+        }
+
+        if (isset($params['limit'])) {
+            $cursor->limit(intval($params['limit']));
+        }
+
+        if (isset($params['orderBy'])) {
+            $cursor->sort(array(
+                $params['orderBy'] => (isset($params['orderDir']) && strtolower($params['orderDir']) === 'desc') ? -1 : 1
+            ));
+        }
+
+        // parse the results
+        $result = array();
+        while($cursor->hasNext()) {
+            $result[] = $cursor->getNext();
+        }
+
+        return $result;
     }
 
     /**
@@ -129,7 +221,8 @@ class MongoDBStore implements StoreInterface
      * @return string ID of the inserted object.
      */
     public function add($collection, array $data) {
-        throw new NotImplementedException();
+        $result = $this->db->{$collection}->insert($data);
+        return $result ? $data['_id'] : null;
     }
 
     /**
@@ -140,7 +233,8 @@ class MongoDBStore implements StoreInterface
      * @param array $data Data that should be updated.
      */
     public function update($collection, CriteriaExpression $criteria = null, array $data) {
-        throw new NotImplementedException();
+        $criteria = $this->parseCriteria($criteria);
+        $this->db->{$collection}->update($criteria, $data);
     }
 
     /**
@@ -161,6 +255,107 @@ class MongoDBStore implements StoreInterface
      */
     public function structure($collection) {
         return array();
+    }
+
+    /*****************************************************
+     * HELPERS
+     *****************************************************/
+    /**
+     * Parses the CriteriaExpression into MongoDB criteria array.
+     * 
+     * @param CriteriaExpression $criteria Criteria expression to be parsed.
+     * @param bool $asCollection [optional] Should this criteria be parsed as a collection? Required for OR logic. For internal use. Default: false.
+     * @return array
+     */
+    protected function parseCriteria(CriteriaExpression $criteria = null, $asCollection = false) {
+        if (is_null($criteria)) {
+            return array();
+        }
+
+        $result = array();
+
+        foreach($criteria->getCriteria() as $criterium) {
+            if ($criterium instanceof CriteriaExpression) {
+                $logic = $criterium->getLogic() === KnitOptions::LOGIC_OR ? '$or' : '$and';
+                $result[$logic] = $this->parseCriteria($criterium, true);
+                continue;
+            }
+
+            $field = $criterium->getField();
+
+            // figure out an operator
+            switch($criterium->getOperator()) {
+                case FieldValue::OPERATOR_EQUALS:
+                    $value = $criterium->getValue();
+                    break;
+
+                case FieldValue::OPERATOR_NOT:
+                    $value = array('$ne' => $criterium->getValue());
+                    break;
+
+                case FieldValue::OPERATOR_IN:
+                    // if the value is empty or is not an array then replace whole statement with a 0 (false) so it never matches
+                    /* @todo needs to be implemented and tested
+                    if (!is_array($values) || empty($values)) {
+                        $sql = '0';
+                        break;
+                    }
+                    */
+                    $value = array('$in' => $criterium->getValue());
+                    break;
+
+                case FieldValue::OPERATOR_GREATER_THAN:
+                    $value = array('$gt' => $criterium->getValue());
+                    break;
+
+                case FieldValue::OPERATOR_GREATER_THAN_EQUAL:
+                   $value = array('$gte' => $criterium->getValue());
+                    break;
+
+                case FieldValue::OPERATOR_LOWER_THAN:
+                    $value = array('$lt' => $criterium->getValue());
+                    break;
+
+                case FieldValue::OPERATOR_LOWER_THAN_EQUAL:
+                    $value = array('$lte' => $criterium->getValue());
+                    break;
+
+                // if it hasn't been handled by the above then throw an exception
+                default:
+                    throw new InvalidOperatorException('MongoDBStore cannot handle operator "'. trim($criterium->getOperator(), '_') .'" used for "'. $criterium->getField() .'" column. Either because this operator is not supported by MongoDB or it has not been implemented in Knit yet.');
+            }
+
+            if ($asCollection) {
+                $result[] = array(
+                    $field => $value
+                );
+                continue;
+            }
+
+            // if already set an expression for this field then append there
+            if (isset($result[$field])) {
+                // if expression for this field isn't an array then it needs to be converted to an equals expression
+                if (!is_array($result[$field])) {
+                    $result[$field] = array('$all' => array($result[$field])); // using '$all' here as there's no '$eq' operator in Mongo
+                }
+
+                // fix analogusly for the value itself
+                if ($criterium->getOperator() === FieldValue::OPERATOR_EQUALS) {
+                    $value = array('$all' => array($value));
+                }
+
+                // do in a foreach to get the operator (which is set to be key)
+                foreach($value as $operator => $val) {
+                    $result[$field][$operator] = $val;
+                }
+
+            } else {
+                // no expression for this field have been found yet, so add it
+                $result[$criterium->getField()] = $value;
+            }
+        }
+
+        return $result;
     }
 
     /*****************************************************
