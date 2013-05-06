@@ -26,6 +26,7 @@ use MD\Foundation\Utils\StringUtils;
 
 use Knit\Criteria\CriteriaExpression;
 use Knit\Criteria\FieldValue;
+use Knit\Entity\Repository;
 use Knit\Exceptions\StoreConnectionFailedException;
 use Knit\Exceptions\StoreQueryErrorException;
 use Knit\Store\StoreInterface;
@@ -106,18 +107,19 @@ class MySQLStore implements StoreInterface
     /**
      * Constructor.
      * 
-     * @param string $hostname MySQL server host name.
-     * @param string $username MySQL server user name.
-     * @param string $password MySQL server user password.
-     * @param string $database MySQL database name.
-     * @param int $port MongoDB server port number.
+     * @param array $config Array of all information required to connect to the store (e.g. host, user, pass, database name, port, etc.)
      */
-    public function __construct($hostname, $username, $password, $database, $port = null) {
-        $this->hostname = $hostname;
-        $this->port = $port;
-        $this->username = $username;
-        $this->password = $password;
-        $this->database = $database;
+    public function __construct(array $config) {
+        // check for all required info
+        if (!ArrayUtils::checkValues($config, array('hostname', 'username', 'password', 'database'))) {
+            throw new \InvalidArgumentException('"'. get_called_class() .'::__construct()"  expects 1st argument to be an array containing non-empty keys: "hostname", "username", "password" and "database", "'. implode('", "', array_keys($config)) .'" given.');
+        }
+
+        $this->hostname = $config['hostname'];
+        $this->port = (isset($config['port'])) ? intval($config['port']) : null;
+        $this->username = $config['username'];
+        $this->password = $config['password'];
+        $this->database = $config['database'];
 
         $this->logger = new NullLogger();
     }
@@ -125,6 +127,9 @@ class MySQLStore implements StoreInterface
     /*****************************************************
      * STORE INTERFACE IMPLEMENTATION
      *****************************************************/
+    /** void */
+    public function didBindToRepository(Repository $repository) {}
+
     /**
      * Performs a SELECT query on the given table.
      * 
