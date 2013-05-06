@@ -119,6 +119,9 @@ class Repository
 
         // load info about the entity structure
         $this->getEntityStructure();
+
+        // call the store callback
+        $this->store->didBindToRepository($this);
     }
 
     /*****************************************************
