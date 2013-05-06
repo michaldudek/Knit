@@ -633,6 +633,15 @@ class Repository
     }
 
     /**
+     * Sets the name of the entity property that is it's ID.
+     * 
+     * @param string $idProperty
+     */
+    public function setIdProperty($idProperty) {
+        $this->idProperty = $idProperty;
+    }
+
+    /**
      * Returns the event manager for this repository.
      * 
      * @return EventManager
