@@ -91,6 +91,15 @@ class Repository
     protected $entityStructure = array();
 
     /**
+     * Default values used in blank entities.
+     * 
+     * Taken from entity's structure.
+     * 
+     * @var array
+     */
+    protected $defaults = array();
+
+    /**
      * Event manager.
      * 
      * @var EventManager
@@ -118,7 +127,14 @@ class Repository
         $this->eventManager = new EventManager();
 
         // load info about the entity structure
-        $this->getEntityStructure();
+        $structure = $this->getEntityStructure();
+
+        // and remember default properties
+        foreach($structure as $property => $info) {
+            if (isset($info['default'])) {
+                $this->defaults[$property] = $info['default'];
+            }
+        }
 
         // call the store callback
         $this->store->didBindToRepository($this);
@@ -590,6 +606,9 @@ class Repository
         // store reference to this repository
         $entity->_setRepository($this);
 
+        // set default values in properties
+        $entity->_setProperties($this->defaults);
+
         $entity->_setProperties($data);
 
         $this->getEventManager()->trigger(new DidBindDataToEntity($entity));
@@ -613,6 +632,9 @@ class Repository
 
         // store reference to this repository
         $entity->_setRepository($this);
+
+        // set default values in properties
+        $entity->_setProperties($this->defaults);
         
         foreach($data as $var => $value) {
             call_user_func_array(array($entity, ObjectUtils::setter($var)), array($value));
