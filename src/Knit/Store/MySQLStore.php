@@ -320,7 +320,7 @@ class MySQLStore implements StoreInterface
             $this->logQuery($statement, array(
                 'parameters' => $parameters
             ), true);
-            throw new StoreQueryErrorException('MySQL: '. $e->getMessage(), 0, $e);
+            throw new StoreQueryErrorException('MySQL: '. $e->getMessage(), $e->getCode(), $e);
         }
 
         $type = $this->determineQueryType($statement->queryString);
@@ -396,10 +396,6 @@ class MySQLStore implements StoreInterface
         // if error occurred then log as error
         if ($error) {
             $this->logger->error($message, $context);
-
-        // if execution time was higher than 0.5 then we heave a really slow quer, so notice that
-        } else if (isset($context['executionTime']) && $context['executionTime'] >= 0.5) { // should be probably much less than 0.5 or configurable (pref)
-            $this->logger->notice($message, $context);
 
         // otherwise just log normally
         } else {
