@@ -42,41 +42,6 @@ class MongoDBStore implements StoreInterface
 {
 
     /**
-     * MongoDB server host name.
-     * 
-     * @var string
-     */
-    protected $hostname;
-
-    /**
-     * MongoDB server port number.
-     * 
-     * @var int
-     */
-    protected $port;
-
-    /**
-     * MongoDB server user name.
-     * 
-     * @var string
-     */
-    protected $username;
-
-    /**
-     * MongoDB server user password.
-     * 
-     * @var string
-     */
-    protected $password;
-
-    /**
-     * MongoDB database name.
-     * 
-     * @var string
-     */
-    protected $database;
-
-    /**
      * The store logger.
      * 
      * @var LoggerInterface
@@ -175,21 +140,29 @@ class MongoDBStore implements StoreInterface
      */
     public function find($collection, CriteriaExpression $criteria = null, array $params = array()) {
         $criteria = $this->parseCriteria($criteria);
-        $cursor = $this->db->{$collection}->find($criteria);
 
-        // apply params
-        if (isset($params['start'])) {
-            $cursor->skip(intval($params['start']));
-        }
+        $timer = new Timer();
 
-        if (isset($params['limit'])) {
-            $cursor->limit(intval($params['limit']));
-        }
+        try {
+            $cursor = $this->db->{$collection}->find($criteria);
 
-        if (isset($params['orderBy'])) {
-            $cursor->sort(array(
-                $params['orderBy'] => (isset($params['orderDir']) && strtolower($params['orderDir']) === 'desc') ? -1 : 1
-            ));
+            // apply params
+            if (isset($params['start'])) {
+                $cursor->skip(intval($params['start']));
+            }
+
+            if (isset($params['limit'])) {
+                $cursor->limit(intval($params['limit']));
+            }
+
+            if (isset($params['orderBy'])) {
+                $cursor->sort(array(
+                    $params['orderBy'] => (isset($params['orderDir']) && strtolower($params['orderDir']) === 'desc') ? -1 : 1
+                ));
+            }
+        } catch (MongoException $e) {
+            $this->logQuery($collection, 'find', $criteria, array(), true);
+            throw new StoreQueryErrorException('MongoDB: '. $e->getMessage(), $e->getCode(), $e);
         }
 
         // parse the results
@@ -197,6 +170,12 @@ class MongoDBStore implements StoreInterface
         while($cursor->hasNext()) {
             $result[] = $cursor->getNext();
         }
+
+        // log this query
+        $this->logQuery($collection, 'find', $criteria, array(
+            'executionTime' => $timer->stop(),
+            'affected' => $cursor->count(true)
+        ));
 
         return $result;
     }
@@ -210,7 +189,28 @@ class MongoDBStore implements StoreInterface
      * @return array
      */
     public function count($collection, CriteriaExpression $criteria = null, array $params = array()) {
-        throw new NotImplementedException();
+        $criteria = $this->parseCriteria($criteria);
+
+        $timer = new Timer();
+
+        $params = array_merge(array(
+            'limit' => 0,
+            'skip' => 0
+        ), $params);
+
+        try {
+            $result = $this->db->{$collection}->count($criteria, $params['limit'], $params['skip']);
+        } catch (MongoException $e) {
+            $this->logQuery($collection, 'count', $criteria, array(), true);
+            throw new StoreQueryErrorException('MongoDB: '. $e->getMessage(), $e->getCode(), $e);
+        }
+
+        // log this query
+        $this->logQuery($collection, 'count', $criteria, array(
+            'executionTime' => $timer->stop()
+        ));
+
+        return $result;
     }
 
     /**
@@ -221,7 +221,23 @@ class MongoDBStore implements StoreInterface
      * @return string ID of the inserted object.
      */
     public function add($collection, array $data) {
-        $result = $this->db->{$collection}->insert($data);
+        $timer = new Timer();
+
+        try {
+            $result = $this->db->{$collection}->insert($data);
+        } catch (MongoException $e) {
+            $this->logQuery($collection, 'insert', array(), array(
+                'data' => $data
+            ), true);
+            throw new StoreQueryErrorException('MongoDB: '. $e->getMessage(), $e->getCode(), $e);
+        }
+
+        // log this query
+        $this->logQuery($collection, 'insert', array(), array(
+            'executionTime' => $timer->stop(),
+            'data' => $data
+        ));
+
         return $result ? $data['_id'] : null;
     }
 
@@ -234,7 +250,35 @@ class MongoDBStore implements StoreInterface
      */
     public function update($collection, CriteriaExpression $criteria = null, array $data) {
         $criteria = $this->parseCriteria($criteria);
-        $this->db->{$collection}->update($criteria, $data);
+
+        // check if multiple update is possible
+        $multiple = false;
+        foreach($criteria as $key => $value) {
+            if ($key[0] === '$') {
+                $multiple = true;
+                break;
+            }
+        }
+
+        $timer = new Timer();
+
+        try {
+            $info = $this->db->{$collection}->update($criteria, $data, array(
+                'multiple' => $multiple // always allow multi updates
+            ));
+        } catch (MongoException $e) {
+            $this->logQuery($collection, 'update', $criteria, array(
+                'data' => $data
+            ), true);
+            throw new StoreQueryErrorException('MongoDB: '. $e->getMessage(), $e->getCode(), $e);
+        }
+
+        // log this query
+        $this->logQuery($collection, 'update', $criteria, array(
+            'data' => $data,
+            'executionTime' => $timer->stop(),
+            'affected' => (is_array($info)) ? $info['n'] : 'unknown'
+        ));
     }
 
     /**
@@ -244,7 +288,22 @@ class MongoDBStore implements StoreInterface
      * @param CriteriaExpression $criteria Criteria on which to delete.
      */
     public function delete($collection, CriteriaExpression $criteria = null) {
-        throw new NotImplementedException();
+        $criteria = $this->parseCriteria($criteria);
+
+        $timer = new Timer();
+
+        try {
+            $info = $this->db->{$collection}->remove($criteria);
+        } catch (MongoException $e) {
+            $this->logQuery($collection, 'delete', $criteria, array(), true);
+            throw new StoreQueryErrorException('MongoDB: '. $e->getMessage(), $e->getCode(), $e);
+        }
+
+        // log this query
+        $this->logQuery($collection, 'delete', $criteria, array(
+            'executionTime' => $timer->stop(),
+            'affected' => (is_array($info)) ? $info['n'] : 'unknown'
+        ));
     }
 
     /**
@@ -260,6 +319,60 @@ class MongoDBStore implements StoreInterface
     /*****************************************************
      * HELPERS
      *****************************************************/
+    /**
+     * Logs the given PDO statement (database query) to the available logger.
+     * 
+     * @param string $collection Name of the collection on which the query was executed.
+     * @param string $type Type of the query performed, e.g. "find", "remove", "update", "insert", "count".
+     * @param array $criteria Array of criteria used in the query.
+     * @param array $context [optional] Context of the query (like execution time).
+     * @param bool $error [optional] Has an error occurred on this query? Default: false.
+     */
+    public function logQuery($collection, $type, array $criteria, array $context = array(), $error = false) {
+        // if not really logging then don't bother
+        if ($this->logger instanceof NullLogger) {
+            return;
+        }
+
+        $message = $type .' @ '. $collection .': '. json_encode($criteria);
+
+        $context = array_merge($context, array(
+            'collection' => $collection,
+            'criteria' => $criteria,
+            'type' => $type,
+            '_tags' => array(
+                'mongodb', $type, $collection
+            )
+        ));
+
+        // add trace
+        $knitDir = realpath(dirname(__FILE__) .'/../../../');
+        $trace = Debugger::getPrettyTrace(debug_backtrace());
+
+        $caller = null;
+
+        foreach($trace as $call) {
+            // first occurence of a file that is outside of Knit means close to getting the caller
+            if (stripos($call['file'], $knitDir) !== 0) {
+                $caller = $call;
+                break;
+            }
+        }
+
+        if ($caller) {
+            $context['caller'] = $caller;
+        }
+
+        // if error occurred then log as error
+        if ($error) {
+            $this->logger->error($message, $context);
+
+        // otherwise just log normally
+        } else {
+            $this->logger->info($message, $context);
+        }
+    }
+
     /**
      * Parses the CriteriaExpression into MongoDB criteria array.
      * 
