@@ -79,7 +79,7 @@ class MongoDBStore implements StoreInterface
             // define MongoClient options
             $options = array(
                 'db' => $config['database'],
-                'connect' => false
+                'connect' => true
             );
 
             if (ArrayUtils::checkValues($config, array('username', 'password'))) {
