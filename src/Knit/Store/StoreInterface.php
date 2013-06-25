@@ -20,13 +20,6 @@ interface StoreInterface
 {
 
     /**
-     * Constructor.
-     * 
-     * @param array $config Array of all information required to connect to the store (e.g. host, user, pass, database name, port, etc.)
-     */
-    public function __construct(array $config);
-
-    /**
      * A "callback" method that is called by a repository after the store has been bound to it.
      * 
      * It can be used to set some custom settings on the repository that are store specific.
