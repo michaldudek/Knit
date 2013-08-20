@@ -11,7 +11,7 @@
     ],
     "require": {
         "php": ">=5.3.3",
-        "psr/log": "dev-master",
+        "psr/log": "1.0.*",
         "danielmewes/php-rql": "dev-master",
         "michaldudek/foundation": "dev-master",
         "splot/event-manager": "dev-master"
