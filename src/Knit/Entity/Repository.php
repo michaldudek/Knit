@@ -152,7 +152,7 @@ class Repository
      */
     public function find(array $criteria = array(), array $params = array()) {
         $event = new WillReadFromStore($criteria, $params);
-        if ($this->getEventManager()->trigger($event)) {
+        if (!$this->getEventManager()->trigger($event)) {
             return array();
         }
 
@@ -409,7 +409,7 @@ class Repository
     public function save(AbstractEntity $entity) {
         $this->checkEntityOwnership($entity);
 
-        if ($this->getEventManager()->trigger(new WillSaveEntity($entity))) {
+        if (!$this->getEventManager()->trigger(new WillSaveEntity($entity))) {
             return;
         }
 
@@ -432,7 +432,7 @@ class Repository
     public function add(AbstractEntity $entity) {
         $this->checkEntityOwnership($entity);
         
-        if ($this->getEventManager()->trigger(new WillAddEntity($entity))) {
+        if (!$this->getEventManager()->trigger(new WillAddEntity($entity))) {
             return;
         }
 
@@ -455,7 +455,7 @@ class Repository
     public function update(AbstractEntity $entity) {
         $this->checkEntityOwnership($entity);
 
-        if ($this->getEventManager()->trigger(new WillUpdateEntity($entity))) {
+        if (!$this->getEventManager()->trigger(new WillUpdateEntity($entity))) {
             return;
         }
 
@@ -477,7 +477,7 @@ class Repository
     public function delete(AbstractEntity $entity) {
         $this->checkEntityOwnership($entity);
 
-        if ($this->getEventManager()->trigger(new WillDeleteEntity($entity))) {
+        if (!$this->getEventManager()->trigger(new WillDeleteEntity($entity))) {
             return;
         }
 
@@ -503,7 +503,7 @@ class Repository
         foreach($entities as $entity) {
             $this->checkEntityOwnership($entity);
 
-            if ($this->getEventManager()->trigger(new WillDeleteEntity($entity))) {
+            if (!$this->getEventManager()->trigger(new WillDeleteEntity($entity))) {
                 continue;
             }
 
