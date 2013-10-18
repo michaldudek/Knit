@@ -54,17 +54,21 @@ abstract class AbstractEntity implements Dumpable
     /**
      * Updates the entity with data sent in array.
      * 
+     * The data is validated before setting it.
+     * 
      * @param array $data Updated entity properties.
      */
     public function updateWithData(array $data) {
-        // prevent updating the main key tho
+        // prevent updating the main key
         $idProperty = $this->_getRepository()->getIdProperty();
         if (isset($data[$idProperty])) {
             unset($data[$idProperty]);
         }
-        
-        foreach($data as $var => $value) {
-            call_user_func_array(array($this, ObjectUtils::setter($var)), array($value));
+
+        if ($this->_getRepository()->validateData($data)) {    
+            foreach($data as $var => $value) {
+                call_user_func_array(array($this, ObjectUtils::setter($var)), array($value));
+            }
         }
     }
 
@@ -92,7 +96,7 @@ abstract class AbstractEntity implements Dumpable
     /**
      * Sets all properties to the given ones.
      * 
-     * Setting properties through this method will not use the setters,
+     * Setting properties through this method will not use the setters nor validators
      * but rather set the values directly.
      * 
      * @param array $properties Array of properties to be set.
@@ -118,7 +122,7 @@ abstract class AbstractEntity implements Dumpable
     /**
      * Set a property.
      * 
-     * Setting property through this method will not use the setter,
+     * Setting property through this method will not use the setter nor validators
      * but rather set the value directly.
      * 
      * @param string $property Name of the property.
@@ -138,7 +142,7 @@ abstract class AbstractEntity implements Dumpable
      * @return mixed The property value. If no such property then null will be returned.
      */
     public function _getProperty($var) {
-        return @$this->_properties[$var];
+        return isset($this->_properties[$var]) ? $this->_properties[$var] : null;
     }
 
     /**
@@ -149,11 +153,24 @@ abstract class AbstractEntity implements Dumpable
      */
     final public function _hasProperty($var) {
         $structure = $this->_getRepository()->getEntityStructure();
-        return (isset($structure[$var]));
+        return isset($structure[$var]);
+    }
+
+    /**
+     * Validates the given value for the given property.
+     * 
+     * @param string $var Name of the property.
+     * @param mixed $value Whatever value to be set.
+     * @return bool
+     */
+    public function _validateProperty($var, $value) {
+        return $this->_getRepository()->validateProperty($var, $value);
     }
    
    /**
-     * Set the property. It will try to call a defined setter first.
+     * Set the property. Before property is set it is validated.
+     * 
+     * It will try to call a defined setter first.
      * 
      * @param string $var Name of the property.
      * @param mixed $value Value to set to.
@@ -165,8 +182,10 @@ abstract class AbstractEntity implements Dumpable
             call_user_func(array($this, $setter), $value);
             return;
         }
-        
-        $this->_setProperty($var, $value);
+
+        if ($this->_validateProperty($var, $value)) {
+            $this->_setProperty($var, $value);
+        }
     }
     
     /**
@@ -196,7 +215,7 @@ abstract class AbstractEntity implements Dumpable
     }
     
     /**
-     * Is the given model property set?
+     * Is the given property set?
      * 
      * @param string $var Name of the property.
      * @return bool
@@ -206,7 +225,7 @@ abstract class AbstractEntity implements Dumpable
     }
     
     /**
-     * Unset the given model property.
+     * Unset the given property.
      * 
      * @param string $var Name of the property.
      */
@@ -241,7 +260,12 @@ abstract class AbstractEntity implements Dumpable
                     trigger_error('Function "'. $this->__getClass() .'::'. $methodName .'()" requires one argument, none given in '. $file .' on line '. $line, E_USER_ERROR);
                 }
 
-                return $this->_setProperty($property, $arguments[0]);
+                // validate before setting
+                if ($this->_validateProperty($property, $arguments[0])) {
+                    $this->_setProperty($property, $arguments[0]);
+                }
+
+                return;
             } else if ($type == 'get') {
                 return $this->_getProperty($property);
             }
@@ -278,42 +302,29 @@ abstract class AbstractEntity implements Dumpable
         */
         
         // or maybe called a validator
-        /*
-        if (substr($name, 0, 8) == 'validate') {
-            $property = lcfirst(substr($name, 8));
+        if (substr($methodName, 0, 8) == 'validate') {
+            $property = lcfirst(substr($methodName, 8));
+
+            // decide on property name by checking if a camelCase exists first
+            // and if not trying the under_scored
+            $property = ($this->_hasProperty($property)) ? $property : StringUtils::toSeparated($property, '_');
+
+            // require at least one argument
+            if (!isset($arguments[0])) {
+                $trace = debug_backtrace();
+                $file = isset($trace[0]['file']) ? $trace[0]['file'] : 'unknown';
+                $line = isset($trace[0]['line']) ? $trace[0]['line'] : 'unknown';
+                trigger_error('Function "'. $this->__getClass() .'::'. $methodName .'()" requires one argument, none given in '. $file .' on line '. $line, E_USER_ERROR);
+            }
             
-            return $this->_validateProperty($property, @$arguments[0]);
+            return $this->_validateProperty($property, $arguments[0]);
         }
-        */
     
         // undefined method called!
         $trace = debug_backtrace();
         trigger_error('Call to undefined method '. $this->__getClass() .'::'. $methodName .'() in '. $trace[0]['file'] .' on line '. $trace[0]['line'], E_USER_ERROR);
         return null;
     }
-    
-    /**
-     * Catch validators and do what they would normally do.
-     * 
-     * @param object $name
-     * @param object $arguments
-     * @return mixed
-     */
-    /*
-    final public static function __callStatic($name, $arguments) {
-        // calling a validator?
-        if (substr($name, 0, 8) == 'validate') {
-            $property = lcfirst(substr($name, 8));
-            
-            return self::_validateProperty($property, $arguments[0]);
-        }
-        
-        // undefined method called!
-        $trace = debug_backtrace();
-        trigger_error('Call to undefined model\'s method '. get_called_class() .'::'. $name .'() in '. $trace[0]['file'] .' on line '. $trace[0]['line'], E_USER_ERROR);
-        return null;
-    }
-    */
    
     /*****************************************************
      * ACTIVE RECORD

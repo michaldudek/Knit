@@ -15,8 +15,10 @@ use MD\Foundation\Debug\Debugger;
 use Knit\Exceptions\RepositoryDefinedException;
 use Knit\Exceptions\StoreDefinedException;
 use Knit\Exceptions\NoStoreException;
+use Knit\Exceptions\ValidatorNotDefinedException;
 use Knit\Entity\Repository;
 use Knit\Store\StoreInterface;
+use Knit\Validators\ValidatorInterface;
 
 class Knit
 {
@@ -48,6 +50,13 @@ class Knit
      * @var array
      */
     protected $entityRepositories = array();
+
+    /**
+     * Registry of all registered validators.
+     * 
+     * @var array
+     */
+    protected $validators = array();
 
     /**
      * Constructor.
@@ -104,6 +113,30 @@ class Knit
      * SETTERS AND GETTERS
      *****************************************************/
     /**
+     * Registers a validator for future use.
+     * 
+     * @param string $name Name of the validator.
+     * @param ValidatorInterface $validator Validator instance.
+     */
+    public function registerValidator($name, ValidatorInterface $validator) {
+        $this->validators[$name] = $validator;
+    }
+
+    /**
+     * Returns the requested validator.
+     * 
+     * @param string $name Name of the validator.
+     * @return ValidatorInterface
+     */
+    public function getValidator($name) {
+        if (!isset($this->validators[$name])) {
+            throw new ValidatorNotDefinedException('Could not find validator registered under the name "'. $name .'".');
+        }
+
+        return $this->validators[$name];
+    }
+
+    /**
      * Returns store registered under the given name.
      * 
      * @param string $name [optional] Name of the store to get. If no name given then default store will be returned.
@@ -153,6 +186,14 @@ class Knit
         $this->entityStores[$entityClass] = $store;
     }
 
+    /**
+     * Sets repository class name for the given entity.
+     * 
+     * @param string $entityClass Class name of the entity.
+     * @param string $repositoryClass Class name of the repository for that entity.
+     * 
+     * @throws RepositoryDefinedException When repository class has already been defined for this entity.
+     */
     public function setRepositoryClassForEntity($entityClass, $repositoryClass) {
         if (isset($this->entityRepositories[$entityClass])) {
             throw new RepositoryDefinedException('Cannot overwrite already defined repository for an entity. Tried to set repository "'. $repositoryClass .'" for "'. $entityClass .'".');
@@ -161,29 +202,37 @@ class Knit
         $this->entityRepositories[$entityClass] = $repositoryClass;
     }
 
+    /** 
+     * Returns repository class for the given entity class.
+     * 
+     * @param string $entityClass Class name of the entity.
+     * @return string
+     */
+    public function getRepositoryClassForEntity($entityClass) {
+        // check if there was a repository class for this entity defined
+        if (isset($this->entityRepositories[$entityClass])) {
+            return $this->entityRepositories[$entityClass];
+        }
+
+        // look for repository by appending 'Repository' to the end of class name
+        // or if not found, use the generic Repository class
+        return class_exists('\\'. $entityClass .'Repository') ? $entityClass .'Repository' : 'Knit\Entity\Repository';
+    }
+
     /**
      * Returns repository for the given entity.
      * 
      * @param string $entityClass Class name (full, with namespace) of the entity.
      * @return Repository
+     * 
+     * @throws \RuntimeException When the entity repository doesn't extend Knit\Entity\Repository class.
      */
     public function getRepository($entityClass) {
         if (isset($this->repositories[$entityClass])) {
             return $this->repositories[$entityClass];
         }
 
-        $repositoryClass = null;
-
-        // check if there was a repository class for this entity defined
-        if (isset($this->entityRepositories[$entityClass])) {
-            $repositoryClass = $this->entityRepositories[$entityClass];
-        }
-
-        // look for repository by appending 'Repository' to the end of class name
-        // or if not found, use the generic Repository class
-        if (!$repositoryClass) {
-            $repositoryClass = class_exists($entityClass .'Repository') ? $entityClass .'Repository' : 'Knit\Entity\Repository';
-        }
+        $repositoryClass = $this->getRepositoryClassForEntity($entityClass);
 
         // must extend Repository
         if (!Debugger::isExtending($repositoryClass, 'Knit\Entity\Repository', true)) {

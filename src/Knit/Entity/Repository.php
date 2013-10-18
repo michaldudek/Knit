@@ -21,6 +21,8 @@ use Splot\EventManager\EventManager;
 
 use Knit\Criteria\CriteriaExpression;
 use Knit\Entity\AbstractEntity;
+use Knit\Exceptions\DataValidationFailedException;
+use Knit\Exceptions\PropertyValidationFailedException;
 use Knit\Exceptions\StructureNotDefinedException;
 use Knit\Store\StoreInterface;
 use Knit\KnitOptions;
@@ -111,7 +113,8 @@ class Repository
      * 
      * @param string $entityClass Class name of the assigned entity that this repository will be managing.
      * @param StoreInterface $store Store to use with this repository.
-     * @param string $collection [optional] Name of the collection/table in the persistent store.
+     * @param string $collection [optional] Name of the collection/table in the persistent store. Used in case this info
+     *                           was not found in the entity class itself.
      */
     public function __construct($entityClass, StoreInterface $store, Knit $knit, $collection = null) {
         $this->knit = $knit;
@@ -619,6 +622,8 @@ class Repository
     /**
      * Will create an instance of the entity and fill its properties with the passed data.
      * 
+     * Validates the data before creating it.
+     * 
      * @param array $data [optional] Array of properties for the entity to have.
      * @return AbstractEntity
      */
@@ -626,6 +631,8 @@ class Repository
         $event = new WillCreateEntity($data);
         $this->getEventManager()->trigger($event);
         $data = $event->getData();
+
+        $this->validateData($data);
 
         $entityClass = $this->entityClass;
         $entity = new $entityClass();
@@ -643,6 +650,101 @@ class Repository
         $this->getEventManager()->trigger(new DidCreateEntity($entity));
 
         return $entity;
+    }
+
+    /**
+     * Validates the given data against the repository's entity.
+     * 
+     * Returns true if data has been successfully validated.
+     * 
+     * @param array $data Data to be validated.
+     * @return bool 
+     * 
+     * @throws DataValidationFailedException When the validation fails.
+     */
+    public function validateData(array $data) {
+        $errors = array();
+
+        foreach($data as $property => $value) {
+            try {
+                $this->validateProperty($property, $value);
+            } catch (PropertyValidationFailedException $e) {
+                $errors[] = $e;
+            }
+        }
+
+        if (empty($errors)) {
+            return true;
+        }
+
+        throw new DataValidationFailedException($this->entityClass, $errors);
+    }
+
+    /**
+     * Validates the given value for the given property.
+     * 
+     * Returns true of validation has passed successfully or throws PropertyValidationFailedException if not.
+     * 
+     * @param string $property Property name.
+     * @param mixed $value Value to be set.
+     * @return bool True if passed validation
+     * 
+     * @throws PropertyValidationFailedException When the value fails to pass the validation.
+     */
+    public function validateProperty($property, $value) {
+        $structure = $this->getEntityStructure();
+
+        // automatically validate all non-persisted properties
+        if (!isset($structure[$property])) {
+            return true;
+        }
+
+        $validators = isset($structure[$property]['validators']) ? $structure[$property]['validators'] : array();
+
+        // validators that not necesserily can be found under 'validators' key
+        // in the entity structure, so need to be "moved" there
+        $specialCaseValidators = array(
+            'type',
+            'unique',
+            'maxLength',
+            'minLength',
+            'required',
+            'min',
+            'max',
+            'allowedValues'
+        );
+
+        // get names of allvalidators that we need
+        foreach($structure[$property] as $k => $v) {
+            if (in_array($k, $specialCaseValidators)) {
+                $validators[$k] = $v;
+            }
+        }
+
+        $failed = array();
+
+        // go over all validators and test against the given value
+        foreach($validators as $key => $val) {
+            if (is_numeric($key)) {
+                $name = $val;
+                $against = null;
+            } else {
+                $name = $key;
+                $against = $val;
+            }
+
+            $validator = $this->knit->getValidator($name);
+            if (!$validator->validate($value, $against)) {
+                $failed[] = $name;
+            }
+        }
+
+        // if no failed validators then successfuly passed
+        if (empty($failed)) {
+            return true;
+        }
+
+        throw new PropertyValidationFailedException($this->entityClass, $property, $value, $failed);
     }
 
     /*****************************************************
