@@ -9,6 +9,7 @@
             "email": "michal@michaldudek.pl"
         }
     ],
+    "minimum-stability": "dev",
     "require": {
         "php": ">=5.3.3",
         "psr/log": "1.0.*",
@@ -17,6 +18,9 @@
         "splot/event-manager": "dev-master"
     },
     "autoload": {
-        "psr-0": { "Knit": "src/" }
+        "psr-0": {
+            "Knit\\Tests": "tests/",
+            "Knit": "src/"
+        }
     }
 }
