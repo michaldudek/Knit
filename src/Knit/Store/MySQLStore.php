@@ -258,7 +258,7 @@ class MySQLStore implements StoreInterface
             $columnInfo = array(
                 'type' => $type['name'],
                 'maxLength' => $type['length'],
-                'required' => ($column['Null'] !== 'YES'),
+                'required' => ($column['Null'] === 'NO'),
                 'default' => $column['Default']
             );
 
