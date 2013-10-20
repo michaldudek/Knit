@@ -21,11 +21,16 @@ class RequiredValidator implements ValidatorInterface
      * Performs the validation.
      * 
      * @param mixed $value Value to be validated.
-     * @param mixed $against Against what value to validate?
+     * @param mixed $required Is the value required?
      * @param AbstractEntity $entity [optional] Entity for which the validation happens.
      * @return bool
      */
-    public function validate($value, $against = null, AbstractEntity $entity = null) {
+    public function validate($value, $required = null, AbstractEntity $entity = null) {
+        // if not required then automatically pass the validation
+        if ($required === null || $required === false) {
+            return true;
+        }
+
         if ($value === null) {
             return false;
         }

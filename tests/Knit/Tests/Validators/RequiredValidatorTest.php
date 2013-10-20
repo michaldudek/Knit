@@ -25,13 +25,20 @@ class RequiredValidatorTest extends \PHPUnit_Framework_TestCase
 
     public function provideValidationData() {
         return array(
-            array(null, null, false),
-            array(true, null, true),
-            array('    ', null, false),
-            array('', null, false),
-            array('    sdf', null, true),
-            array(0, null, true),
-            array('0', null, true)
+            array(null, true, false),
+            array(null, false, true),
+            array(true, true, true),
+            array(true, false, true),
+            array('    ', true, false),
+            array('    ', false, true),
+            array('', true, false),
+            array('', false, true),
+            array('    sdf', true, true),
+            array('    sdf', false, true),
+            array(0, true, true),
+            array(0, false, true),
+            array('0', true, true),
+            array('0', false, true)
         );
     }
 
