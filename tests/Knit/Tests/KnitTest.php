@@ -29,6 +29,21 @@ class KnitTest extends \PHPUnit_Framework_TestCase
         $this->assertSame($anotherStore, $knit->getStore('another'));
         $this->assertSame($dummyStore, $knit->getStore('dummy'));
 
+        // also make sure all default validators are registered
+        $ns = 'Knit\Validators\\';
+        $validators = array(
+            'equals' => $ns .'EqualsValidator',
+            'maxLength' => $ns .'MaxLengthValidator',
+            'max' => $ns .'MaxValidator',
+            'minLength' => $ns .'MinLengthValidator',
+            'min' => $ns .'MinValidator',
+            'required' => $ns .'RequiredValidator',
+            'type' => $ns .'TypeValidator',
+        );
+        foreach($validators as $name => $class) {
+            $this->assertInstanceOf($class, $knit->getValidator($name));
+        }
+
         return $knit;
     }
 
