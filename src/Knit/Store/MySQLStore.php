@@ -259,9 +259,12 @@ class MySQLStore implements StoreInterface
                 'type' => $type['name'],
                 'maxLength' => $type['length'],
                 'required' => ($column['Null'] !== 'YES'),
-                'default' => $column['Default'],
-                'allowedValues' => $type['allowed']
+                'default' => $column['Default']
             );
+
+            if (isset($column['allowed']) && is_array($column['allowed']) && !empty($column['allowed'])) {
+                $columnInfo['allowedValues'] = $column['allowed'];
+            }
 
             $structure[$column['Field']] = $columnInfo;
         }
