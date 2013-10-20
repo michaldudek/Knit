@@ -253,14 +253,14 @@ class MySQLStore implements StoreInterface
         $structure = array();
         foreach($columns as $column) {
             // resolve the MySQL type to Knit type
-            $type = self::mysqlToKnitType($column['Type']);
+            $type = static::mysqlToKnitType($column['Type']);
 
             $columnInfo = array(
                 'type' => $type['name'],
-                'length' => $type['length'],
-                'null' => ($column['Null'] === 'YES'),
+                'maxLength' => $type['length'],
+                'required' => ($column['Null'] !== 'YES'),
                 'default' => $column['Default'],
-                'allowed' => $type['allowed']
+                'allowedValues' => $type['allowed']
             );
 
             $structure[$column['Field']] = $columnInfo;
