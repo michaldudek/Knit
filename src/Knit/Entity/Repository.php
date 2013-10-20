@@ -221,13 +221,17 @@ class Repository
      * If none found in store then it will create it using this data.
      * 
      * @param array $data Array of criteria/data.
+     * @param bool $autosave [optional] If a new object is created should it be autosaved? Default: false.
      * @return object
      */
-    public function provide(array $data) {
+    public function provide(array $data, $autosave = false) {
         $object = $this->findOne($data);
         if (!$object) {
             $object = $this->createWithData($data);
-            $this->save($object);
+
+            if ($autosave) {
+                $this->save($object);
+            }
         }
 
         return $object;
