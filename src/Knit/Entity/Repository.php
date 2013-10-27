@@ -223,14 +223,17 @@ class Repository
      * 
      * If none found in store then it will create it using this data.
      * 
-     * @param array $data Array of criteria/data.
+     * @param array $criteria Criteria on which the search for entity. Will be also applied to any new entities and
+     *                        it takes precedence over what's specified in $data.
+     * @param array $data Array of data to be set if creating a new entity.
      * @param bool $autosave [optional] If a new object is created should it be autosaved? Default: false.
      * @return object
      */
-    public function provide(array $data, $autosave = false) {
-        $object = $this->findOne($data);
+    public function provide(array $criteria, array $data, $autosave = false) {
+        $object = $this->findOne($criteria);
         if (!$object) {
-            $object = $this->createWithData($data);
+            $data = array_merge($data, $criteria);
+            $object = $this->instantiateWithData($data);
 
             if ($autosave) {
                 $this->save($object);
