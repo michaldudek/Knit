@@ -31,6 +31,10 @@ class MaxValidator implements ValidatorInterface
      * @return bool
      */
     public function validate($value, $against = null, $property = null, AbstractEntity $entity = null, Repository $repository = null) {
+        if (!$against) {
+            return true;
+        }
+        
         if (!is_int($value)) {
             $value = intval($value);
         }
