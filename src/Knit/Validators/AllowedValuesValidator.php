@@ -17,7 +17,7 @@ use Knit\Entity\AbstractEntity;
 use Knit\Entity\Repository;
 use Knit\Validators\ValidatorInterface;
 
-class EmailValidator implements ValidatorInterface
+class AllowedValuesValidator implements ValidatorInterface
 {
 
     /**
