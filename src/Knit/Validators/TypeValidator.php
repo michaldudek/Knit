@@ -32,6 +32,10 @@ class TypeValidator implements ValidatorInterface
      * @return bool
      */
     public function validate($value, $against = null, $property = null, AbstractEntity $entity = null, Repository $repository = null) {
+        if (is_null($value)) {
+            return true;
+        }
+        
         switch($against) {
             case KnitOptions::TYPE_INT:
                 return is_int($value) || is_numeric($value);
