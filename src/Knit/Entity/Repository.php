@@ -555,17 +555,30 @@ class Repository
 
         // check for structure definition inside the entity class
         $entityClass = $this->entityClass;
-        $structure = $entityClass::_getStructure();
-        if (!empty($structure)) {
-            // store the structure
-            $this->entityStructure = $structure;
-            return $structure;
+        $definedStructure = $entityClass::_getStructure();
+
+        // now check if there's any structure defined in the store (for "SQL" stores)
+        $storeStructure = $this->store->structure($this->collection);
+
+        // if store structure has been defined then merge it with the entity defined structure
+        // this is so we can add validators into entities that are fully "table-defined"
+        if (!empty($storeStructure)) {
+            $structure = array();
+
+            foreach($storeStructure as $property => $definition) {
+                // merge the store structure with the defined structure
+                $structure[$property] = isset($definedStructure[$property])
+                    ? array_merge($definition, $definedStructure[$property])
+                    : $definition;
+            }
+
+        } else {
+            // if structure-less store then just use the defined structure
+            $structure = $definedStructure;
         }
 
-        // no structure defined in the entity class so let's get it from the store
-        $structure = $this->store->structure($this->collection);
+        // finally check if we got any structure and if so store and return it
         if (!empty($structure)) {
-            // store the structure
             $this->entityStructure = $structure;
             return $structure;
         }
