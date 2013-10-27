@@ -752,8 +752,8 @@ class Repository
                 $against = $val;
             }
 
-            // ID property is not always required
-            if ($property === $this->getIdProperty() && in_array($name, array('required', 'minLength'))) {
+            // don't validate ID property
+            if ($property === $this->getIdProperty()) {
                 continue;
             }
 
