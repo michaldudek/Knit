@@ -18,6 +18,7 @@ use Knit\Exceptions\NoStoreException;
 use Knit\Exceptions\ValidatorNotDefinedException;
 use Knit\Entity\Repository;
 use Knit\Store\StoreInterface;
+use Knit\Validators\AllowedValuesValidator;
 use Knit\Validators\EmailValidator;
 use Knit\Validators\EqualsValidator;
 use Knit\Validators\MaxLengthValidator;
@@ -87,6 +88,7 @@ class Knit
 
         // register the default validators
         $validators = array(
+            'allowedValues' => new AllowedValuesValidator(),
             'email' => new EmailValidator(),
             'equals' => new EqualsValidator(),
             'maxLength' => new MaxLengthValidator(),
