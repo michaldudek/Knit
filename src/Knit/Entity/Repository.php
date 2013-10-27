@@ -136,7 +136,7 @@ class Repository
         foreach($structure as $property => $info) {
             if (isset($info['default'])) {
                 $this->defaults[$property] = $info['default'];
-            } else if (isset($info['required']) && $info['required']) {
+            } else if ($property !== $this->getIdProperty() && isset($info['required']) && $info['required']) {
                 // automatically set required properties to null so they don't validate
                 $this->defaults[$property] = null;
             }
