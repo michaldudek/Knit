@@ -733,7 +733,7 @@ class Repository
             'allowedValues'
         );
 
-        // get names of allvalidators that we need
+        // get names of all validators that we need
         foreach($structure[$property] as $k => $v) {
             if (in_array($k, $specialCaseValidators)) {
                 $validators[$k] = $v;
@@ -750,6 +750,11 @@ class Repository
             } else {
                 $name = $key;
                 $against = $val;
+            }
+
+            // ID property is not always required
+            if ($property === $this->getIdProperty() && in_array($name, array('required', 'minLength'))) {
+                continue;
             }
 
             $validator = $this->knit->getValidator($name);
