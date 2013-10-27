@@ -1,6 +1,6 @@
 <?php
 /**
- * Validates if one value equals another.
+ * Validates if the given value is a valid email address.
  * 
  * @package Knit
  * @subpackage Validators
@@ -11,11 +11,13 @@
  */
 namespace Knit\Validators;
 
+use MD\Foundation\Utils\StringUtils;
+
 use Knit\Entity\AbstractEntity;
 use Knit\Entity\Repository;
 use Knit\Validators\ValidatorInterface;
 
-class EqualsValidator implements ValidatorInterface
+class EmailValidator implements ValidatorInterface
 {
 
     /**
@@ -31,7 +33,7 @@ class EqualsValidator implements ValidatorInterface
      * @return bool
      */
     public function validate($value, $against = null, $property = null, AbstractEntity $entity = null, Repository $repository = null) {
-        return $value === $against;
+        return StringUtils::isEmail($value);
     }
 
 }

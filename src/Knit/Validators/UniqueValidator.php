@@ -1,6 +1,6 @@
 <?php
 /**
- * Validates if one value equals another.
+ * Validates if this value is unique in the whole repository.
  * 
  * @package Knit
  * @subpackage Validators
@@ -15,7 +15,7 @@ use Knit\Entity\AbstractEntity;
 use Knit\Entity\Repository;
 use Knit\Validators\ValidatorInterface;
 
-class EqualsValidator implements ValidatorInterface
+class UniqueValidator implements ValidatorInterface
 {
 
     /**
@@ -31,7 +31,15 @@ class EqualsValidator implements ValidatorInterface
      * @return bool
      */
     public function validate($value, $against = null, $property = null, AbstractEntity $entity = null, Repository $repository = null) {
-        return $value === $against;
+        $found = $repository->findOne(array(
+            $property => $value
+        ));
+
+        if (!$found || ($entity && $entity->getId() === $found->getId())) {
+            return true;
+        }
+
+        return false;   
     }
 
 }

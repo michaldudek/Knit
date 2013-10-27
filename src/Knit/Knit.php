@@ -18,6 +18,7 @@ use Knit\Exceptions\NoStoreException;
 use Knit\Exceptions\ValidatorNotDefinedException;
 use Knit\Entity\Repository;
 use Knit\Store\StoreInterface;
+use Knit\Validators\EmailValidator;
 use Knit\Validators\EqualsValidator;
 use Knit\Validators\MaxLengthValidator;
 use Knit\Validators\MaxValidator;
@@ -25,6 +26,7 @@ use Knit\Validators\MinLengthValidator;
 use Knit\Validators\MinValidator;
 use Knit\Validators\RequiredValidator;
 use Knit\Validators\TypeValidator;
+use Knit\Validators\UniqueValidator;
 use Knit\Validators\ValidatorInterface;
 
 class Knit
@@ -85,13 +87,15 @@ class Knit
 
         // register the default validators
         $validators = array(
+            'email' => new EmailValidator(),
             'equals' => new EqualsValidator(),
             'maxLength' => new MaxLengthValidator(),
             'max' => new MaxValidator(),
             'minLength' => new MinLengthValidator(),
             'min' => new MinValidator(),
             'required' => new RequiredValidator(),
-            'type' => new TypeValidator()
+            'type' => new TypeValidator(),
+            'unique' => new UniqueValidator()
         );
         foreach($validators as $name => $validator) {
             $this->registerValidator($name, $validator);

@@ -12,6 +12,7 @@
 namespace Knit\Validators;
 
 use Knit\Entity\AbstractEntity;
+use Knit\Entity\Repository;
 
 interface ValidatorInterface
 {
@@ -23,9 +24,11 @@ interface ValidatorInterface
      * 
      * @param mixed $value Value to be validated.
      * @param mixed $against [optional] Optional against value (taken from entity's structure configuration).
+     * @param string $property [optional] Name of the property that is being validated.
      * @param AbstractEntity $entity [optional] Entity for which the validation happens.
+     * @param Repository $repository [optional] Repository of the entity that is being validated.
      * @return bool
      */
-    public function validate($value, $against = null, AbstractEntity $entity = null);
+    public function validate($value, $against = null, $property = null, AbstractEntity $entity = null, Repository $repository = null);
 
 }

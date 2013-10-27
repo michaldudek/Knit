@@ -136,6 +136,9 @@ class Repository
         foreach($structure as $property => $info) {
             if (isset($info['default'])) {
                 $this->defaults[$property] = $info['default'];
+            } else if (isset($info['required']) && $info['required']) {
+                // automatically set required properties to null so they don't validate
+                $this->defaults[$property] = null;
             }
         }
 
@@ -616,6 +619,8 @@ class Repository
      * @return object Instance of the entity.
      */
     protected function instantiateWithData(array $data = array()) {
+        $data = array_merge($this->defaults, $data);
+
         $event = new WillBindDataToEntity($data);
         $this->getEventManager()->trigger($event);
         $data = $event->getData();
@@ -625,9 +630,6 @@ class Repository
 
         // store reference to this repository
         $entity->_setRepository($this);
-
-        // set default values in properties
-        $entity->_setProperties($this->defaults);
 
         $entity->_setProperties($data);
 
@@ -645,6 +647,8 @@ class Repository
      * @return AbstractEntity
      */
     public function createWithData(array $data = array()) {
+        $data = array_merge($this->defaults, $data);
+
         $event = new WillCreateEntity($data);
         $this->getEventManager()->trigger($event);
         $data = $event->getData();
@@ -656,9 +660,6 @@ class Repository
 
         // store reference to this repository
         $entity->_setRepository($this);
-
-        // set default values in properties
-        $entity->_setProperties($this->defaults);
         
         foreach($data as $var => $value) {
             call_user_func_array(array($entity, ObjectUtils::setter($var)), array($value));
@@ -675,16 +676,17 @@ class Repository
      * Returns true if data has been successfully validated.
      * 
      * @param array $data Data to be validated.
+     * @param AbstractEntity $entity [optional] Entity for which the values are validated.
      * @return bool 
      * 
      * @throws DataValidationFailedException When the validation fails.
      */
-    public function validateData(array $data) {
+    public function validateData(array $data, AbstractEntity $entity = null) {
         $errors = array();
 
         foreach($data as $property => $value) {
             try {
-                $this->validateProperty($property, $value);
+                $this->validateProperty($property, $value, $entity);
             } catch (PropertyValidationFailedException $e) {
                 $errors[] = $e;
             }
@@ -708,7 +710,7 @@ class Repository
      * 
      * @throws PropertyValidationFailedException When the value fails to pass the validation.
      */
-    public function validateProperty($property, $value) {
+    public function validateProperty($property, $value, AbstractEntity $entity = null) {
         $structure = $this->getEntityStructure();
 
         // automatically validate all non-persisted properties
@@ -751,7 +753,7 @@ class Repository
             }
 
             $validator = $this->knit->getValidator($name);
-            if (!$validator->validate($value, $against)) {
+            if (!$validator->validate($value, $against, $property, $entity, $this)) {
                 $failed[] = $name;
             }
         }
