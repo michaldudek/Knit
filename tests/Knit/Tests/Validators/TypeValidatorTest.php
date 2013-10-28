@@ -33,7 +33,7 @@ class TypeValidatorTest extends \PHPUnit_Framework_TestCase
             array('123', KnitOptions::TYPE_STRING, true),
             array(123, KnitOptions::TYPE_STRING, false),
             array('null', KnitOptions::TYPE_STRING, true),
-            array(null, KnitOptions::TYPE_STRING, false),
+            array(null, KnitOptions::TYPE_STRING, true),
             array(1.23, KnitOptions::TYPE_FLOAT, true)
             //const TYPE_FLOAT = 'float';
             //const TYPE_ENUM = 'enum';

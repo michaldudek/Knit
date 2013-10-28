@@ -744,6 +744,10 @@ class Repository
         }
 
         $failed = array();
+        // list of validators that are allowed for ID property
+        $idValidators = array(
+            'type'
+        );
 
         // go over all validators and test against the given value
         foreach($validators as $key => $val) {
@@ -755,8 +759,8 @@ class Repository
                 $against = $val;
             }
 
-            // don't validate ID property
-            if ($property === $this->getIdProperty()) {
+            // ID property is only validated on type
+            if ($property === $this->getIdProperty() && !in_array($name, $idValidators)) {
                 continue;
             }
 
