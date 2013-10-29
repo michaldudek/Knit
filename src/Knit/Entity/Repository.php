@@ -93,6 +93,13 @@ class Repository
     protected $entityStructure = array();
 
     /**
+     * List of property names that should be hidden when for example dumping to array or encoding to JSON.
+     * 
+     * @var array
+     */
+    protected $hiddenPropertyNames = null;
+
+    /**
      * Default values used in blank entities.
      * 
      * Taken from entity's structure.
@@ -613,6 +620,23 @@ class Repository
         }
         
         return $storeProperties;
+    }
+
+    /**
+     * Returns names of the properties that should be hidden when converting the entity into an array,
+     * e.g. for JSON output.
+     * 
+     * @return array
+     */
+    public function getHiddenPropertyNames() {
+        if ($this->hiddenPropertyNames !== null) {
+            return $this->hiddenPropertyNames;
+        }
+
+        $structure = $this->getEntityStructure();
+        $hiddenPropertyNames = ArrayUtils::filterByKeyValue($structure, 'hidden', true, true);
+        $this->hiddenPropertyNames = array_keys($hiddenPropertyNames);
+        return $this->hiddenPropertyNames;
     }
 
     /**
