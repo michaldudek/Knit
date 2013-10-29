@@ -14,6 +14,7 @@ namespace Knit\Entity;
 use RuntimeException;
 
 use MD\Foundation\Debug\Debugger;
+use MD\Foundation\Utils\ArrayUtils;
 use MD\Foundation\Utils\ObjectUtils;
 use MD\Foundation\Utils\StringUtils;
 
