@@ -11,6 +11,8 @@
  */
 namespace Knit\Entity;
 
+use RuntimeException;
+
 use MD\Foundation\Debug\Interfaces\Dumpable;
 use MD\Foundation\Utils\ObjectUtils;
 use MD\Foundation\Utils\StringUtils;
@@ -37,6 +39,16 @@ abstract class AbstractEntity implements Dumpable
      */
     protected $_properties = array();
 
+    /**
+     * Should notices about this entity being unlinked to a repository be triggered?
+     * 
+     * Not linking an entity to a repository can lead to some unexpected behavior and turns off several features
+     * like validation and casting types.
+     * 
+     * @var bool
+     */
+    protected $_triggerUnlinkedNotices = true;
+
     /*****************************************************
      * MAPPING
      *****************************************************/
@@ -59,13 +71,19 @@ abstract class AbstractEntity implements Dumpable
      * @param array $data Updated entity properties.
      */
     public function updateWithData(array $data) {
+        $repository = $this->_getRepository();
+
         // prevent updating the main key
-        $idProperty = $this->_getRepository()->getIdProperty();
-        if (isset($data[$idProperty])) {
-            unset($data[$idProperty]);
+        if ($repository) {
+            $idProperty = $repository->getIdProperty();
+            if (isset($data[$idProperty])) {
+                unset($data[$idProperty]);
+            }
         }
 
-        if ($this->_getRepository()->validateData($data)) {    
+        $valid = $repository ? $repository->validateData($data) : true;
+
+        if ($valid) {    
             foreach($data as $var => $value) {
                 call_user_func_array(array($this, ObjectUtils::setter($var)), array($value));
             }
@@ -81,7 +99,7 @@ abstract class AbstractEntity implements Dumpable
      * @return mixed
      */
     public function _getId() {
-        return $this->_getProperty($this->_getRepository()->getIdProperty());
+        return $this->_getProperty($this->_getIdProperty());
     }
     
     /**
@@ -90,7 +108,17 @@ abstract class AbstractEntity implements Dumpable
      * @param mixed $value
      */
     public function _setId($value) {
-        $this->_setProperty($this->_getRepository()->getIdProperty(), $value);
+        $this->_setProperty($this->_getIdProperty(), $value);
+    }
+
+    /**
+     * Returns the ID property name.
+     * 
+     * @return string
+     */
+    public function _getIdProperty() {
+        $repository = $this->_getRepository();
+        return $repository ? $this->_getProperty($repository->getIdProperty()) : 'id';
     }
 
     /**
@@ -152,8 +180,14 @@ abstract class AbstractEntity implements Dumpable
      * @return bool
      */
     final public function _hasProperty($var) {
-        $structure = $this->_getRepository()->getEntityStructure();
-        return isset($structure[$var]);
+        $repository = $this->_getRepository();
+
+        if ($repository) {
+            $structure = $repository->getEntityStructure();
+            return isset($structure[$var]);
+        }
+
+        return true;
     }
 
     /**
@@ -164,7 +198,8 @@ abstract class AbstractEntity implements Dumpable
      * @return bool
      */
     public function _validateProperty($var, $value) {
-        return $this->_getRepository()->validateProperty($var, $value);
+        $repository = $this->_getRepository();
+        return $repository ? $repository->validateProperty($var, $value) : true;
     }
    
    /**
@@ -335,14 +370,26 @@ abstract class AbstractEntity implements Dumpable
      * Saves the entity in its persistent store.
      */
     public function save() {
-        $this->_getRepository()->save($this);
+        $repository = $this->_getRepository();
+
+        if (!$repository) {
+            throw new RuntimeException('Trying to call "'. get_class($this) .'->save()" method on an entity object without linked repository! Please link a repository by calling "_setRepository()" first.');
+        }
+
+        $$repository->save($this);
     }
 
     /**
      * Removes the entity from its persistent store.
      */
     public function delete() {
-        $this->_getRepository()->delete($this);
+        $repository = $this->_getRepository();
+
+        if (!$repository) {
+            throw new RuntimeException('Trying to call "'. get_class($this) .'->delete()" method on an entity object without linked repository! Please link a repository by calling "_setRepository()" first.');
+        }
+
+        $repository->delete($this);
     }
 
     /*****************************************************
@@ -369,7 +416,25 @@ abstract class AbstractEntity implements Dumpable
      * @return Repository
      */
     public function _getRepository() {
+        if (!$this->_repository && $this->_triggerUnlinkedNotices) {
+            trigger_error('Entity "'. get_class($this) .'" has not been linked to a repository which can lead to unexpected behavior!', E_USER_NOTICE);
+        }
+
         return $this->_repository;
+    }
+
+    /**
+     * Should notices about this entity being unlinked to a repository be triggered?
+     * 
+     * Not linking an entity to a repository can lead to some unexpected behavior and turns off several features
+     * like validation and casting types.
+     * 
+     * However, it is useful in tests.
+     * 
+     * @param bool $trigger [optional] Should the noticed be triggered?
+     */
+    public function _setUnlinkedNotices($trigger = true) {
+        $this->_triggerUnlinkedNotices = $trigger;
     }
 
     /**
@@ -379,7 +444,7 @@ abstract class AbstractEntity implements Dumpable
      * 
      * @return string
      * 
-     * @throws \RuntimeException When cannot magically resolve a string value.
+     * @throws RuntimeException When cannot magically resolve a string value.
      */
     public function __toString() {
         $name = $this->getName();
@@ -392,7 +457,7 @@ abstract class AbstractEntity implements Dumpable
             return $title;
         }
 
-        throw \RuntimeException('Entity "'. get_class($this) .'" does not implement __toString() method and cannot be cast to string.');
+        throw new RuntimeException('Entity "'. get_class($this) .'" does not implement __toString() method and cannot be cast to string.');
     }
 
     /*****************************************************
@@ -406,8 +471,10 @@ abstract class AbstractEntity implements Dumpable
      * @return array
      */
     public function toArray() {
+        $repository = $this->_getRepository();
+
         $properties = $this->_getProperties();
-        $hiddenPropertyNames = $this->_getRepository()->getHiddenPropertyNames();
+        $hiddenPropertyNames = $repository ? $repository->getHiddenPropertyNames() : array();
 
         foreach($properties as $property => $value) {
             if (in_array($property, $hiddenPropertyNames)) {
