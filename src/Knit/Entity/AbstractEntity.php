@@ -376,7 +376,7 @@ abstract class AbstractEntity implements Dumpable
             throw new RuntimeException('Trying to call "'. get_class($this) .'->save()" method on an entity object without linked repository! Please link a repository by calling "_setRepository()" first.');
         }
 
-        $$repository->save($this);
+        $repository->save($this);
     }
 
     /**
