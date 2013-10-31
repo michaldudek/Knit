@@ -453,7 +453,12 @@ abstract class AbstractEntity implements Dumpable
      * @return mixed
      */
     public function _castPropertyType($property, $value) {
-        $structure = $this->_getRepository()->getEntityStructure();
+        $repository = $this->_getRepository();
+        if (!$repository) {
+            return $value;
+        }
+
+        $structure = $repository->getEntityStructure();
 
         if (isset($structure[$property])) {
             switch($structure[$property]['type']) {
