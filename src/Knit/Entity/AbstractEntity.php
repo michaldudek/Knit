@@ -118,7 +118,7 @@ abstract class AbstractEntity implements Dumpable
      */
     public function _getIdProperty() {
         $repository = $this->_getRepository();
-        return $repository ? $this->_getProperty($repository->getIdProperty()) : 'id';
+        return $repository ? $repository->getIdProperty() : 'id';
     }
 
     /**
