@@ -287,17 +287,11 @@ abstract class AbstractEntity implements Dumpable
             $property = ($this->_hasProperty($property)) ? $property : StringUtils::toSeparated($property, '_');
 
             if ($type == 'set') {
-                // if a setter then require at least one argument
-                if (!isset($arguments[0])) {
-                    $trace = debug_backtrace();
-                    $file = isset($trace[0]['file']) ? $trace[0]['file'] : 'unknown';
-                    $line = isset($trace[0]['line']) ? $trace[0]['line'] : 'unknown';
-                    trigger_error('Function "'. $this->__getClass() .'::'. $methodName .'()" requires one argument, none given in '. $file .' on line '. $line, E_USER_ERROR);
-                }
+                $value = isset($arguments[0]) ? $arguments[0] : null;
 
                 // validate before setting
-                if ($this->_validateProperty($property, $arguments[0])) {
-                    $this->_setProperty($property, $arguments[0]);
+                if ($this->_validateProperty($property, $value)) {
+                    $this->_setProperty($property, $value);
                 }
 
                 return;
