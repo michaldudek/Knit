@@ -37,6 +37,7 @@ use Knit\Events\WillCreateEntity;
 use Knit\Events\DidCreateEntity;
 use Knit\Events\WillDeleteEntity;
 use Knit\Events\DidDeleteEntity;
+use Knit\Events\WillDeleteOnCriteria;
 use Knit\Events\WillReadFromStore;
 use Knit\Events\DidReadFromStore;
 use Knit\Events\WillSaveEntity;
@@ -555,6 +556,13 @@ class Repository
      * @param array $criteria Criteria on which to delete objects. Same as criteria passed to any other factory methods.
      */
     public function deleteOnCriteria(array $criteria) {
+        $event = new WillDeleteOnCriteria($criteria);
+        if (!$this->getEventManager()->trigger($event)) {
+            return array();
+        }
+
+        $criteria = $event->getCriteria();
+
         $criteria = $this->parseCriteriaArray($criteria);
         $this->store->delete($this->collection, $criteria);
     }
