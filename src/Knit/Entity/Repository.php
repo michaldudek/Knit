@@ -259,6 +259,14 @@ class Repository
      * @return mixed
      */
     public function count(array $criteria = array(), array $params = array()) {
+        $event = new WillReadFromStore($criteria, $params);
+        if (!$this->getEventManager()->trigger($event)) {
+            return 0;
+        }
+
+        $criteria = $event->getCriteria();
+        $params = $event->getParams();
+
         return $this->store->count($this->collection, $this->parseCriteriaArray($criteria), $params);
     }
 
