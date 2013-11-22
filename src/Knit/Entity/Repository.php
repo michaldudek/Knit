@@ -14,6 +14,7 @@ namespace Knit\Entity;
 use RuntimeException;
 
 use MD\Foundation\Debug\Debugger;
+use MD\Foundation\Exceptions\InvalidArgumentException;
 use MD\Foundation\Utils\ArrayUtils;
 use MD\Foundation\Utils\ObjectUtils;
 use MD\Foundation\Utils\StringUtils;
@@ -593,14 +594,7 @@ class Repository
         // if store structure has been defined then merge it with the entity defined structure
         // this is so we can add validators into entities that are fully "table-defined"
         if (!empty($storeStructure)) {
-            $structure = array();
-
-            foreach($storeStructure as $property => $definition) {
-                // merge the store structure with the defined structure
-                $structure[$property] = isset($definedStructure[$property])
-                    ? array_merge($definition, $definedStructure[$property])
-                    : $definition;
-            }
+            $structure = ArrayUtils::mergeDeep($definedStructure, $storeStructure);
 
         } else {
             // if structure-less store then just use the defined structure
@@ -615,6 +609,22 @@ class Repository
 
         // if couldn't find non-empty entity structure then throw an exception
         throw new StructureNotDefinedException('Structure not defined for entity "'. $this->entityClass .'". If you are using NoSQL store then you have to specify structure in "'. $this->entityClass .'::$_structure" variable (must conform to structure array), otherwise it should be automatically read from the database.');
+    }
+
+    /**
+     * Extends the entity structure with the given structure.
+     * 
+     * This is used mainly by extensions.
+     * 
+     * Returns the new structure.
+     * 
+     * @param array $structure Structure definition that will be applied of defined structure.
+     * @return array
+     */
+    public function extendEntityStructure(array $structure) {
+        $entityStructure = $this->getEntityStructure();
+        $this->entityStructure = ArrayUtils::mergeDeep($entityStructure, $structure);
+        return $this->entityStructure;
     }
 
     /**
@@ -857,13 +867,15 @@ class Repository
      * 
      * @param AbstractEntity $entity Entity to be verified.
      * 
-     * @throws \InvalidArgumentException When the given entity does not belong to this repository.
+     * @throws InvalidArgumentException When the given entity does not belong to this repository.
      */
     protected function checkEntityOwnership(AbstractEntity $entity) {
         // check if this entity belongs to this repository
         if (Debugger::getClass($entity) !== $this->entityClass) {
-            throw new \InvalidArgumentException('The given entity does not belong to repository "'. Debugger::getClass($this) .'". Entity should be of class "'. $this->entityClass .'", "'. Debugger::getClass($entity) .'" given.');
+            throw new InvalidArgumentException('entity of class "'. $this->entityClass .'"', $entity);
         }
+
+        return true;
     }
 
     /**
