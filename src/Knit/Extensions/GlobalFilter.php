@@ -13,6 +13,8 @@
  */
 namespace Knit\Extensions;
 
+use MD\Foundation\Utils\ArrayUtils;
+
 use Knit\Entity\Repository;
 use Knit\Events\WillReadFromStore;
 use Knit\Events\WillDeleteOnCriteria;
@@ -66,7 +68,7 @@ class GlobalFilter implements ExtensionInterface
      * @param WillReadFromStore $store
      */
     public function addFilterToCriteriaOnRead(WillReadFromStore $event) {
-        $event->setCriteria(array_merge($event->getCriteria(), $this->filterCriteria));
+        $event->setCriteria(ArrayUtils::mergeDeep($event->getCriteria(), $this->filterCriteria));
     }
 
     /**
@@ -75,7 +77,7 @@ class GlobalFilter implements ExtensionInterface
      * @param WillDeleteOnCriteria $store
      */
     public function addFilterToCriteriaOnDelete(WillDeleteOnCriteria $event) {
-        $event->setCriteria(array_merge($event->getCriteria(), $this->filterCriteria));
+        $event->setCriteria(ArrayUtils::mergeDeep($event->getCriteria(), $this->filterCriteria));
     }
 
     /**
