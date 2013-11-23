@@ -112,6 +112,28 @@ class KnitTest extends \PHPUnit_Framework_TestCase
         $knit->registerRepository('Contact', $invalidRepository);
     }
 
+    public function testRegisteringAndGettingExtensions() {
+        $knit = $this->testConstructingAndRegisteringStores();
+
+        $extensionOne = $this->getMock('Knit\Extensions\ExtensionInterface');
+        $extensionTwo = $this->getMock('Knit\Extensions\ExtensionInterface');
+
+        $knit->registerExtension('one', $extensionOne);
+        $knit->registerExtension('two', $extensionTwo);
+
+        $this->assertSame($extensionOne, $knit->getExtension('one'));
+        $this->assertSame($extensionTwo, $knit->getExtension('two'));
+    }
+
+    /**
+     * @expectedException \Knit\Exceptions\ExtensionNotDefinedException
+     */
+    public function testGettingUndefinedExtension() {
+        $knit = $this->testConstructingAndRegisteringStores();
+
+        $knit->getExtension('undefined');
+    }
+
     public function testRegisteringAndGettingValidators() {
         $knit = $this->testConstructingAndRegisteringStores();
 

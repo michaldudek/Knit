@@ -12,11 +12,13 @@ namespace Knit;
 
 use MD\Foundation\Debug\Debugger;
 
+use Knit\Exceptions\ExtensionNotDefinedException;
 use Knit\Exceptions\RepositoryDefinedException;
 use Knit\Exceptions\StoreDefinedException;
 use Knit\Exceptions\NoStoreException;
 use Knit\Exceptions\ValidatorNotDefinedException;
 use Knit\Entity\Repository;
+use Knit\Extensions\ExtensionInterface;
 use Knit\Store\StoreInterface;
 use Knit\Validators\AllowedValuesValidator;
 use Knit\Validators\EmailValidator;
@@ -123,6 +125,32 @@ class Knit
     /*****************************************************
      * SETTERS AND GETTERS
      *****************************************************/
+    /**
+     * Registers an extension for future use.
+     * 
+     * @param string $name Name of the extension.
+     * @param ExtensionInterface $extension Extension instance.
+     */
+    public function registerExtension($name, ExtensionInterface $extension) {
+        $this->extensions[$name] = $extension;
+    }
+
+    /**
+     * Returns the requested extension.
+     * 
+     * @param string $name Name of the extension.
+     * @return ExtensionInterface
+     * 
+     * @throws ExtensionNotDefinedException When extension could not be found.
+     */
+    public function getExtension($name) {
+        if (!isset($this->extensions[$name])) {
+            throw new ExtensionNotDefinedException('Could not find extension registered under the name "'. $name .'".');
+        }
+
+        return $this->extensions[$name];
+    }
+
     /**
      * Registers a validator for future use.
      * 
