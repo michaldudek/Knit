@@ -870,8 +870,11 @@ class Repository
      * @throws InvalidArgumentException When the given entity does not belong to this repository.
      */
     protected function checkEntityOwnership(AbstractEntity $entity) {
+        $entityClass = Debugger::getClass($entity);
+        $entityClass = ltrim($entityClass, '\\');
+        $registeredEntityClass = ltrim($this->entityClass, '\\');
         // check if this entity belongs to this repository
-        if (Debugger::getClass($entity) !== $this->entityClass) {
+        if ($entityClass !== $registeredEntityClass) {
             throw new InvalidArgumentException('entity of class "'. $this->entityClass .'"', $entity);
         }
 
