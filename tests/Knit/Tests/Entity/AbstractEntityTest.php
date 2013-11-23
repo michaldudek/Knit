@@ -10,6 +10,7 @@ class AbstractEntityTest extends \PHPUnit_Framework_TestCase
         $entity = $this->getMockForAbstractClass(AbstractEntity::__class());
 
         $this->assertInternalType('array', AbstractEntity::_getStructure());
+        $this->assertInternalType('array', AbstractEntity::_getExtensions());
     }
 
 }

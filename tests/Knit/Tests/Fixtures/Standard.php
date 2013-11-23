@@ -2,6 +2,7 @@
 namespace Knit\Tests\Fixtures;
 
 use Knit\Entity\AbstractEntity;
+use Knit\KnitOptions;
 
 class Standard extends AbstractEntity
 {
@@ -12,6 +13,7 @@ class Standard extends AbstractEntity
         return array(
             'id' => array(),
             'some_property' => array(
+                'type' => KnitOptions::TYPE_STRING,
                 'default' => 'value'
             )
         );

@@ -64,6 +64,17 @@ abstract class AbstractEntity implements Dumpable
     }
 
     /**
+     * Implement this function if you want to add any Knit extensions into this entity.
+     * 
+     * It should return an array with a list of extensions by names as they are registered in Knit.
+     * 
+     * @return array
+     */
+    public static function _getExtensions() {
+        return array();
+    }
+
+    /**
      * Updates the entity with data sent in array.
      * 
      * The data is validated before setting it.

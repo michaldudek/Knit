@@ -2,6 +2,7 @@
 namespace Knit\Tests\Entity;
 
 use Knit\Tests\Fixtures\Dummy;
+use Knit\Tests\Fixtures\ExtendedEntity;
 use Knit\Tests\Fixtures\Standard;
 use Knit\Tests\Fixtures\ValidatingEntity;
 
@@ -11,32 +12,59 @@ class RepositoryTest extends \PHPUnit_Framework_TestCase
 {
 
     public function testConstructingRepository() {
-        $storeMock = $this->getMock('Knit\Store\StoreInterface');
-        $storeMock->expects($this->once())
+        $mocks = $this->provideMocks();
+        $mocks['store']->expects($this->once())
             ->method('didBindToRepository')
             ->with($this->callback(function($argument) {
                 return $argument instanceof Repository;
             }));
-        $knitMock = $this->getMockBuilder('Knit\Knit')
-            ->disableOriginalConstructor()
-            ->getMock();
 
-        $repository = new Repository(Standard::__class(), $storeMock, $knitMock);
+        $repository = new Repository(Standard::__class(), $mocks['store'], $mocks['knit']);
     }
 
     /**
      * @expectedException \RuntimeException
      */
     public function testConstructingRepositoryForInvalidEntity() {
-        $storeMock = $this->getMock('Knit\Store\StoreInterface');
-        $knitMock = $this->getMockBuilder('Knit\Knit')
-            ->disableOriginalConstructor()
-            ->getMock();
-
-        $repository = new Repository(Dummy::__class(), $storeMock, $knitMock);
+        $mocks = $this->provideMocks();
+        $repository = new Repository(Dummy::__class(), $mocks['store'], $mocks['knit']);
     }
 
+    public function testAddingExtensions() {
+        $repository = $this->provideRepository();
 
+        $extension = $this->getMock('Knit\Extensions\ExtensionInterface');
+        $extension->expects($this->once())
+            ->method('addExtension')
+            ->with($this->identicalTo($repository));
+
+        $repository->addExtension($extension);
+    }
+
+    public function testAddingExtensionsFromEntityConfiguration() {
+        $mocks = $this->provideMocks();
+        $timestampExtension = $this->getMock('Knit\Extensions\ExtensionInterface');
+        $timestampExtension->expects($this->once())
+            ->method('addExtension');
+            //->with($this->anything());
+        $softdeleteExtension = $this->getMock('Knit\Extensions\ExtensionInterface');
+        $softdeleteExtension->expects($this->once())
+            ->method('addExtension');
+
+        $mocks['knit']->expects($this->any())
+            ->method('getExtension')
+            ->will($this->returnCallback(function($name) use ($timestampExtension, $softdeleteExtension) {
+                if ($name === 'softdelete') {
+                    return $softdeleteExtension;
+                } else if ($name === 'timestamp') {
+                    return $timestampExtension;
+                }
+
+                return null;
+            }));
+
+        $repository = new Repository(ExtendedEntity::__class(), $mocks['store'], $mocks['knit']);
+    }
 
     protected function provideMocks() {
         $mocks = array(

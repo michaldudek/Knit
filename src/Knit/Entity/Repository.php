@@ -26,6 +26,7 @@ use Knit\Entity\AbstractEntity;
 use Knit\Exceptions\DataValidationFailedException;
 use Knit\Exceptions\PropertyValidationFailedException;
 use Knit\Exceptions\StructureNotDefinedException;
+use Knit\Extensions\ExtensionInterface;
 use Knit\Store\StoreInterface;
 use Knit\KnitOptions;
 use Knit\Knit;
@@ -141,6 +142,13 @@ class Repository
 
         // load info about the entity structure
         $structure = $this->getEntityStructure();
+
+        // add extensions if any already registered
+        $extensions = $entityClass::_getExtensions();
+        foreach($extensions as $name) {
+            $extension = $knit->getExtension($name);
+            $this->addExtension($extension);
+        }
 
         // and remember default properties
         foreach($structure as $property => $info) {
@@ -857,6 +865,15 @@ class Repository
      */
     public function getEventManager() {
         return $this->eventManager;
+    }
+
+    /**
+     * Adds the given extension to this repository.
+     * 
+     * @param ExtensionInterface $extension Extension to be added.
+     */
+    public function addExtension(ExtensionInterface $extension) {
+        $extension->addExtension($this);
     }
 
     /*****************************************************

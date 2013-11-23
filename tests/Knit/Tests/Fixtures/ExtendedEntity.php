@@ -20,4 +20,11 @@ class ExtendedEntity extends AbstractEntity
         );
     }
 
+    public static function _getExtensions() {
+        return array(
+            'timestamp',
+            'softdelete'
+        );
+    }
+
 }
