@@ -532,7 +532,7 @@ abstract class AbstractEntity implements Dumpable
 
         $structure = $repository->getEntityStructure();
 
-        if (isset($structure[$property])) {
+        if (isset($structure[$property]) && isset($structure[$property]['type'])) {
             switch($structure[$property]['type']) {
                 case KnitOptions::TYPE_INT:
                     // cast booleans manually to ensure proper results
