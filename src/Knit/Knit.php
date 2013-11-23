@@ -105,22 +105,6 @@ class Knit
     }
 
     /**
-     * Registers a persistent store to be later used with repositories.
-     * 
-     * @param string $name Name of the store to register. Has to be unique.
-     * @param StoreInterface $store Persistent store to be registered.
-     * 
-     * @throws StoreDefinedException When trying to overwrite already defined store.
-     */
-    public function registerStore($name, StoreInterface $store) {
-        if (isset($this->stores[$name])) {
-            throw new StoreDefinedException('Cannot overwrite already defined store. Tried to set store "'. $name .'".');
-        }
-
-        $this->stores[$name] = $store;
-    }
-
-    /**
      * Registers a repository for the given entity class.
      * 
      * @param string $entityClass Name of the entity class to use this repository with.
@@ -154,6 +138,8 @@ class Knit
      * 
      * @param string $name Name of the validator.
      * @return ValidatorInterface
+     * 
+     * @throws ValidatorNotDefinedException When validator could not be found.
      */
     public function getValidator($name) {
         if (!isset($this->validators[$name])) {
@@ -161,6 +147,22 @@ class Knit
         }
 
         return $this->validators[$name];
+    }
+
+    /**
+     * Registers a persistent store to be later used with repositories.
+     * 
+     * @param string $name Name of the store to register. Has to be unique.
+     * @param StoreInterface $store Persistent store to be registered.
+     * 
+     * @throws StoreDefinedException When trying to overwrite already defined store.
+     */
+    public function registerStore($name, StoreInterface $store) {
+        if (isset($this->stores[$name])) {
+            throw new StoreDefinedException('Cannot overwrite already defined store. Tried to set store "'. $name .'".');
+        }
+
+        $this->stores[$name] = $store;
     }
 
     /**
