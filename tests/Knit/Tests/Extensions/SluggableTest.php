@@ -11,9 +11,15 @@ use Knit\Events\WillAddEntity;
 use Knit\KnitOptions;
 use Knit\Knit;
 
+/**
+ * @coversDefaultClass \Knit\Extensions\Sluggable
+ */
 class SluggableTest extends \PHPUnit_Framework_TestCase
 {
 
+    /**
+     * @covers ::addExtension
+     */
     public function testAddingExtension() {
         $extension = $this->getMock('Knit\Extensions\Sluggable', array(
             'setSlugOnAdd'
@@ -51,6 +57,9 @@ class SluggableTest extends \PHPUnit_Framework_TestCase
         $repository->save($entity);
     }
 
+    /**
+     * @covers ::setSlugOnAdd
+     */
     public function testSettingSlugFromTitle() {
         $mocks = $this->provideMocks();
         $mocks['store'] = $this->getMock('Knit\Store\StoreInterface');
@@ -72,6 +81,9 @@ class SluggableTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals('lorem-ipsum-dolor-sit-amet', $entity->getSlug());
     }
 
+    /**
+     * @covers ::setSlugOnAdd
+     */
     public function testSettingSlugFromName() {
         $mocks = $this->provideMocks();
         $mocks['store'] = $this->getMock('Knit\Store\StoreInterface');
@@ -93,6 +105,9 @@ class SluggableTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals('lipsum-com-generate-your-lorem-ipsum', $entity->getSlug());
     }
 
+    /**
+     * @covers ::setSlugOnAdd
+     */
     public function testSettingSlugWithAppendix() {
         $mocks = $this->provideMocks();
         $mocks['store'] = $this->getMock('Knit\Store\StoreInterface');
@@ -116,6 +131,7 @@ class SluggableTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @expectedException \RuntimeException
+     * @covers ::setSlugOnAdd
      */
     public function testFailingToSetSlug() {
         $mocks = $this->provideMocks();

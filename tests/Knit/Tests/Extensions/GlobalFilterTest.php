@@ -10,9 +10,15 @@ use Knit\Events\WillDeleteOnCriteria;
 use Knit\Events\WillReadFromStore;
 use Knit\KnitOptions;
 
+/**
+ * @coversDefaultClass Knit\Extensions\GlobalFilter
+ */
 class GlobalFilterTest extends \PHPUnit_Framework_TestCase
 {
 
+    /**
+     * @covers ::addFilterToCriteriaOnRead
+     */
     public function testAddFilterToCriteriaOnRead() {
         $extension = new GlobalFilter(array(
             'account_id' => 5
@@ -29,6 +35,9 @@ class GlobalFilterTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals(5, $criteria['account_id']);   
     }
 
+    /**
+     * @covers ::addFilterToCriteriaOnRead
+     */
     public function testAddComplexFilterCriteriaOnRead() {
         $extension = new GlobalFilter(array(
             'account_id' => 5,
@@ -62,6 +71,9 @@ class GlobalFilterTest extends \PHPUnit_Framework_TestCase
         ), $criteria);
     }
 
+    /**
+     * @covers ::addFilterToCriteriaOnDelete
+     */
     public function testAddFilterToCriteriaOnDelete() {
         $extension = new GlobalFilter(array(
             'account_id' => 5
@@ -78,6 +90,9 @@ class GlobalFilterTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals(5, $criteria['account_id']);   
     }
 
+    /**
+     * @covers ::addFilterToCriteriaOnDelete
+     */
     public function testAddComplexFilterCriteriaOnDelete() {
         $extension = new GlobalFilter(array(
             'account_id' => 5,
@@ -111,6 +126,9 @@ class GlobalFilterTest extends \PHPUnit_Framework_TestCase
         ), $criteria);
     }
 
+    /**
+     * @covers ::setFilterEntityPropertiesOnAdd
+     */
     public function testSettingFilterEntityPropertiesOnAdd() {
         $time = time();
 
@@ -130,6 +148,9 @@ class GlobalFilterTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals(5, $entity->getUpdatedBy());
     }
 
+    /**
+     * @covers ::addExtension
+     */
     public function testAddingExtension() {
         $extension = $this->getMock('Knit\Extensions\GlobalFilter', array(
             'addFilterToCriteriaOnRead',

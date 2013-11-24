@@ -10,9 +10,15 @@ use Knit\Events\WillUpdateEntity;
 use Knit\KnitOptions;
 use Knit\Knit;
 
+/**
+ * @coversDefaultClass \Knit\Extensions\Timestampable
+ */
 class TimestampableTest extends \PHPUnit_Framework_TestCase
 {
 
+    /**
+     * @covers ::addExtension
+     */
     public function testAddingExtension() {
         $extension = $this->getMock('Knit\Extensions\Timestampable', array(
             'setCreatedAtOnAdd',
@@ -61,6 +67,9 @@ class TimestampableTest extends \PHPUnit_Framework_TestCase
         $repository->save($entity);
     }
 
+    /**
+     * @covers ::setCreatedAtOnAdd
+     */
     public function testSettingPropertiesAtCreation() {
         $mocks = $this->provideMocks();
         $mocks['knit'] = new Knit($this->getMock('Knit\Store\StoreInterface'));
@@ -81,6 +90,9 @@ class TimestampableTest extends \PHPUnit_Framework_TestCase
         $this->assertTrue($entity->getUpdatedAt() <= $time + 1);
     }
 
+    /**
+     * @covers ::setUpdatedAtOnUpdate
+     */
     public function testSettingPropertiesAtUpdate() {
         $mocks = $this->provideMocks();
         $mocks['knit'] = new Knit($this->getMock('Knit\Store\StoreInterface'));

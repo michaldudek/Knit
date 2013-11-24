@@ -9,13 +9,16 @@ use Knit\Entity\Repository;
 use Knit\Exceptions\DataValidationFailedException;
 use Knit\Exceptions\PropertyValidationFailedException;
 
+/**
+ * @coversDefaultClass \Knit\Entity\Repository
+ */
 class ValidationTest extends \PHPUnit_Framework_TestCase
 {
 
 
     /**
      * @dataProvider providePropertyValidationData
-     * @covers \Knit\Entity\Repository::validateProperty
+     * @covers ::validateProperty
      */
     public function testValidatingProperty($property, $value, $valid, array $shouldFail = array()) {
         $self = $this;
@@ -64,7 +67,7 @@ class ValidationTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @depends testValidatingProperty
-     * @covers \Knit\Entity\Repository::validateData
+     * @covers ::validateData
      * @dataProvider provideDataValidationData
      */
     public function testValidatingData(array $data, $valid, array $errors = array()) {

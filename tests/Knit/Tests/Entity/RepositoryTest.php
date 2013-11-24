@@ -8,9 +8,15 @@ use Knit\Tests\Fixtures\ValidatingEntity;
 
 use Knit\Entity\Repository;
 
+/**
+ * @coversDefaultClass \Knit\Entity\Repository
+ */
 class RepositoryTest extends \PHPUnit_Framework_TestCase
 {
 
+    /**
+     * @covers ::__construct
+     */
     public function testConstructingRepository() {
         $mocks = $this->provideMocks();
         $mocks['store']->expects($this->once())
@@ -24,12 +30,16 @@ class RepositoryTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @expectedException \RuntimeException
+     * @covers ::__construct
      */
     public function testConstructingRepositoryForInvalidEntity() {
         $mocks = $this->provideMocks();
         $repository = new Repository(Dummy::__class(), $mocks['store'], $mocks['knit']);
     }
 
+    /**
+     * @covers ::addExtension
+     */
     public function testAddingExtensions() {
         $repository = $this->provideRepository();
 
@@ -41,6 +51,9 @@ class RepositoryTest extends \PHPUnit_Framework_TestCase
         $repository->addExtension($extension);
     }
 
+    /**
+     * @covers ::addExtension
+     */
     public function testAddingExtensionsFromEntityConfiguration() {
         $mocks = $this->provideMocks();
         $timestampExtension = $this->getMock('Knit\Extensions\ExtensionInterface');

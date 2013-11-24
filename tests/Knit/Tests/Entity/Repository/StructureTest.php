@@ -7,9 +7,15 @@ use Knit\Tests\Fixtures\Standard;
 use Knit\Entity\Repository;
 use Knit\KnitOptions;
 
+/**
+ * @coversDefaultClass \Knit\Entity\Repository
+ */
 class StructureTest extends \PHPUnit_Framework_TestCase
 {
 
+    /**
+     * @covers ::getEntityStructure
+     */
     public function testGettingStructure() {
         $mocks = $this->provideMocks();
         $mocks['store']->expects($this->any())
@@ -50,6 +56,9 @@ class StructureTest extends \PHPUnit_Framework_TestCase
         ), $structure['diff_property']);
     }
 
+    /**
+     * @covers ::extendEntityStructure
+     */
     public function testExtendingStructure() {
         $mocks = $this->provideMocks();
         $mocks['store']->expects($this->any())
@@ -95,12 +104,16 @@ class StructureTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @expectedException \Knit\Exceptions\StructureNotDefinedException
+     * @covers ::getEntityStructure
      */
     public function testGettingEmptyStructure() {
         $repository = $this->provideRepository(NoStructureEntity::__class());
         $structure = $repository->getEntityStructure();
     }
 
+    /**
+     * @covers ::getPropertiesForStore
+     */
     public function testGettingPropertiesForStore() {
         $self = $this;
         $mocks = $this->provideMocks();
