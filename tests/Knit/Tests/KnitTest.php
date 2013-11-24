@@ -29,7 +29,7 @@ class KnitTest extends \PHPUnit_Framework_TestCase
         $this->assertSame($anotherStore, $knit->getStore('another'));
         $this->assertSame($dummyStore, $knit->getStore('dummy'));
 
-        // also make sure all default validators are registered
+        // make sure all default validators are registered
         $ns = 'Knit\Validators\\';
         $validators = array(
             'equals' => $ns .'EqualsValidator',
@@ -42,6 +42,16 @@ class KnitTest extends \PHPUnit_Framework_TestCase
         );
         foreach($validators as $name => $class) {
             $this->assertInstanceOf($class, $knit->getValidator($name));
+        }
+
+        // make sure all default extensions are registered
+        $ns = 'Knit\Extensions\\';
+        $extensions = array(
+            'sluggable' => $ns .'Sluggable',
+            'timestampable' => $ns .'Timestampable'
+        );
+        foreach($extensions as $name => $class) {
+            $this->assertInstanceOf($class, $knit->getExtension($name));
         }
 
         return $knit;

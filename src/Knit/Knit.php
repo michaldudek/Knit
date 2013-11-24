@@ -17,6 +17,8 @@ use Knit\Exceptions\RepositoryDefinedException;
 use Knit\Exceptions\StoreDefinedException;
 use Knit\Exceptions\NoStoreException;
 use Knit\Exceptions\ValidatorNotDefinedException;
+use Knit\Extensions\Sluggable;
+use Knit\Extensions\Timestampable;
 use Knit\Entity\Repository;
 use Knit\Extensions\ExtensionInterface;
 use Knit\Store\StoreInterface;
@@ -103,6 +105,15 @@ class Knit
         );
         foreach($validators as $name => $validator) {
             $this->registerValidator($name, $validator);
+        }
+
+        // register the default extensions
+        $extensions = array(
+            'sluggable' => new Sluggable(),
+            'timestampable' => new Timestampable()
+        );
+        foreach($extensions as $name => $extension) {
+            $this->registerExtension($name, $extension);
         }
     }
 
