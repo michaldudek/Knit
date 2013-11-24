@@ -323,7 +323,7 @@ class MySQLStore implements StoreInterface
             $this->logQuery($statement, array(
                 'parameters' => $parameters
             ), true);
-            throw new StoreQueryErrorException('MySQL: '. $e->getMessage(), $e->getCode(), $e);
+            throw new StoreQueryErrorException('MySQL: '. $e->getMessage(), intval($e->getCode()), $e);
         }
 
         $type = $this->determineQueryType($statement->queryString);
