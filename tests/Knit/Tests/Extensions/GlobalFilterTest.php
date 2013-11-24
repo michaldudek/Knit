@@ -5,9 +5,10 @@ use Knit\Tests\Fixtures\Standard;
 
 use Knit\Entity\Repository;
 use Knit\Extensions\GlobalFilter;
-use Knit\Events\WillAddEntity;
+use Knit\Events\WillCreateEntity;
 use Knit\Events\WillDeleteOnCriteria;
 use Knit\Events\WillReadFromStore;
+use Knit\Knit;
 use Knit\KnitOptions;
 
 /**
@@ -18,6 +19,7 @@ class GlobalFilterTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @covers ::addFilterToCriteriaOnRead
+     * @covers ::__construct
      */
     public function testAddFilterToCriteriaOnRead() {
         $extension = new GlobalFilter(array(
@@ -37,6 +39,7 @@ class GlobalFilterTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @covers ::addFilterToCriteriaOnRead
+     * @covers ::__construct
      */
     public function testAddComplexFilterCriteriaOnRead() {
         $extension = new GlobalFilter(array(
@@ -73,6 +76,7 @@ class GlobalFilterTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @covers ::addFilterToCriteriaOnDelete
+     * @covers ::__construct
      */
     public function testAddFilterToCriteriaOnDelete() {
         $extension = new GlobalFilter(array(
@@ -92,6 +96,7 @@ class GlobalFilterTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @covers ::addFilterToCriteriaOnDelete
+     * @covers ::__construct
      */
     public function testAddComplexFilterCriteriaOnDelete() {
         $extension = new GlobalFilter(array(
@@ -127,9 +132,10 @@ class GlobalFilterTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @covers ::setFilterEntityPropertiesOnAdd
+     * @covers ::setFilterEntityPropertiesOnCreate
+     * @covers ::__construct
      */
-    public function testSettingFilterEntityPropertiesOnAdd() {
+    public function testSettingFilterEntityPropertiesOnCreate() {
         $time = time();
 
         $extension = new GlobalFilter(array(), array(
@@ -137,15 +143,13 @@ class GlobalFilterTest extends \PHPUnit_Framework_TestCase
             'updated_by' => 5
         ));
 
-        $entity = new Standard();
-        $repository = $this->provideRepository(Standard::__class());
-        $entity->_setRepository($repository);
-        $event = new WillAddEntity($entity);
+        $event = new WillCreateEntity(array());
 
-        $extension->setFilterEntityPropertiesOnAdd($event);
+        $extension->setFilterEntityPropertiesOnCreate($event);
+        $data = $event->getData();
 
-        $this->assertEquals($time, $entity->getUpdatedAt());
-        $this->assertEquals(5, $entity->getUpdatedBy());
+        $this->assertEquals($time, $data['updated_at']);
+        $this->assertEquals(5, $data['updated_by']);
     }
 
     /**
@@ -155,7 +159,7 @@ class GlobalFilterTest extends \PHPUnit_Framework_TestCase
         $extension = $this->getMock('Knit\Extensions\GlobalFilter', array(
             'addFilterToCriteriaOnRead',
             'addFilterToCriteriaOnDelete',
-            'setFilterEntityPropertiesOnAdd'
+            'setFilterEntityPropertiesOnCreate'
         ), array(array(
             'some_criteria' => 'rediculous'
         ), array()));
@@ -166,13 +170,14 @@ class GlobalFilterTest extends \PHPUnit_Framework_TestCase
             ->method('addFilterToCriteriaOnDelete')
             ->with($this->anything());
         $extension->expects($this->once())
-            ->method('setFilterEntityPropertiesOnAdd')
+            ->method('setFilterEntityPropertiesOnCreate')
             ->with($this->anything());
 
         $mocks = $this->provideMocks();
         $mocks['store']->expects($this->any())
             ->method('find')
             ->will($this->returnValue(array()));
+        $mocks['knit'] = new Knit($mocks['store']);
         $repository = $this->provideRepository(Standard::__class(), $mocks);
         $repository->addExtension($extension);
 
@@ -186,14 +191,8 @@ class GlobalFilterTest extends \PHPUnit_Framework_TestCase
             'archived' => 1
         )); 
 
-        // should call setFilterEntityPropertiesOnAdd
-        $entity = new Standard();
-        $entity->_setRepository($repository);
-        try {
-            $repository->save($entity);
-        } catch(\RuntimeException $e) {
-            // will most likely trigger this exception since there's no connection with the store
-        }
+        // should call setFilterEntityPropertiesOnCreate
+        $entity = $repository->createWithData(array());
     }
 
     protected function provideMocks() {

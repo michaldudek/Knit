@@ -18,7 +18,7 @@ use MD\Foundation\Utils\ArrayUtils;
 use Knit\Entity\Repository;
 use Knit\Events\WillReadFromStore;
 use Knit\Events\WillDeleteOnCriteria;
-use Knit\Events\WillAddEntity;
+use Knit\Events\WillCreateEntity;
 use Knit\Extensions\ExtensionInterface;
 
 class GlobalFilter implements ExtensionInterface
@@ -59,7 +59,7 @@ class GlobalFilter implements ExtensionInterface
 
         $eventManager->subscribe(WillReadFromStore::getName(), array($this, 'addFilterToCriteriaOnRead'));
         $eventManager->subscribe(WillDeleteOnCriteria::getName(), array($this, 'addFilterToCriteriaOnDelete'));
-        $eventManager->subscribe(WillAddEntity::getName(), array($this, 'setFilterEntityPropertiesOnAdd'));
+        $eventManager->subscribe(WillCreateEntity::getName(), array($this, 'setFilterEntityPropertiesOnCreate'));
     }
 
     /**
@@ -81,13 +81,13 @@ class GlobalFilter implements ExtensionInterface
     }
 
     /**
-     * Sets any properties that should be set in the entity before its stored in the persistent store.
+     * Adds any required properties to the entity data right before it's created from the data.
      * 
-     * @param WillAddEntity $event
+     * @param WillCreateEntity $event Event triggered right before creation of an entity from data.
      */
-    public function setFilterEntityPropertiesOnAdd(WillAddEntity $event) {
-        $entity = $event->getEntity();
-        $entity->updateWithData($this->properties);
+    public function setFilterEntityPropertiesOnCreate(WillCreateEntity $event) {
+        $data = array_merge($event->getData(), $this->properties);
+        $event->setData($data);
     }
 
 }
