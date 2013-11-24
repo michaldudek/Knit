@@ -183,7 +183,7 @@ class MySQLStore implements StoreInterface
             . ($orderBy            ? ' ORDER BY `'. $orderBy .'` '. $orderDir               : null)
             . ($limit              ? ' LIMIT '. $start .', '. $limit                        : null);
 
-        $result = $this->query($query, array(), true);
+        $result = $this->query($query, $parameters, true);
         return ($groupBy) ? $result : intval($result[0]['count']);
     }
 
