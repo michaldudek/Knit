@@ -17,6 +17,7 @@ use Knit\Exceptions\RepositoryDefinedException;
 use Knit\Exceptions\StoreDefinedException;
 use Knit\Exceptions\NoStoreException;
 use Knit\Exceptions\ValidatorNotDefinedException;
+use Knit\Extensions\Guidable;
 use Knit\Extensions\Sluggable;
 use Knit\Extensions\Timestampable;
 use Knit\Entity\Repository;
@@ -109,6 +110,7 @@ class Knit
 
         // register the default extensions
         $extensions = array(
+            'guidable' => new Guidable(),
             'sluggable' => new Sluggable(),
             'timestampable' => new Timestampable()
         );
