@@ -39,7 +39,7 @@ class Guidable implements ExtensionInterface
         $repository->extendEntityStructure(array(
             'guid' => array(
                 'type' => KnitOptions::TYPE_STRING,
-                'maxLength' => 8,
+                'maxLength' => 6,
                 'required' => false,
                 'default' => ''
             )
@@ -59,7 +59,7 @@ class Guidable implements ExtensionInterface
         $entity = $event->getEntity();
         $repository = $entity->_getRepository();
 
-        $guid = StringUtils::random(8);
+        $guid = strtolower(StringUtils::random(6));
 
         $found = $repository->count(array(
             'guid' => $guid
@@ -67,7 +67,7 @@ class Guidable implements ExtensionInterface
 
         // search repository until no result for the slug is found
         while($found) {
-            $guid = StringUtils::random(8);
+            $guid = strtolower(StringUtils::random(6));
 
             $found = $repository->count(array(
                 'guid' => $guid
