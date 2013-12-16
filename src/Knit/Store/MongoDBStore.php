@@ -127,7 +127,6 @@ class MongoDBStore implements StoreInterface
      * @param Repository $repository Repository to which this store has been bound.
      */
     public function didBindToRepository(Repository $repository) {
-        $repository->setIdProperty('_id');
     }
 
     /**
@@ -240,7 +239,11 @@ class MongoDBStore implements StoreInterface
             'data' => $data
         ));
 
-        return $result ? $data['_id'] : null;
+        if (!$result) {
+            return null;
+        }
+
+        return isset($data['_id']) ? (string) $data['_id'] : null;
     }
 
     /**
@@ -399,15 +402,28 @@ class MongoDBStore implements StoreInterface
             }
 
             $field = $criterium->getField();
+            $criteriumValue = $criterium->getValue();
+
+            if ($field === 'id') {
+                $field = '_id';
+
+                if (is_array($criteriumValue)) {
+                    foreach($criteriumValue as $i => $id) {
+                        $criteriumValue[$i] = new MongoId($id);
+                    }
+                } else {
+                    $criteriumValue = new MongoId($criteriumValue);
+                }
+            }
 
             // figure out an operator
             switch($criterium->getOperator()) {
                 case FieldValue::OPERATOR_EQUALS:
-                    $value = $criterium->getValue();
+                    $value = $criteriumValue;
                     break;
 
                 case FieldValue::OPERATOR_NOT:
-                    $value = array('$ne' => $criterium->getValue());
+                    $value = array('$ne' => $criteriumValue);
                     break;
 
                 case FieldValue::OPERATOR_IN:
@@ -418,23 +434,23 @@ class MongoDBStore implements StoreInterface
                         break;
                     }
                     */
-                    $value = array('$in' => $criterium->getValue());
+                    $value = array('$in' => $criteriumValue);
                     break;
 
                 case FieldValue::OPERATOR_GREATER_THAN:
-                    $value = array('$gt' => $criterium->getValue());
+                    $value = array('$gt' => $criteriumValue);
                     break;
 
                 case FieldValue::OPERATOR_GREATER_THAN_EQUAL:
-                   $value = array('$gte' => $criterium->getValue());
+                   $value = array('$gte' => $criteriumValue);
                     break;
 
                 case FieldValue::OPERATOR_LOWER_THAN:
-                    $value = array('$lt' => $criterium->getValue());
+                    $value = array('$lt' => $criteriumValue);
                     break;
 
                 case FieldValue::OPERATOR_LOWER_THAN_EQUAL:
-                    $value = array('$lte' => $criterium->getValue());
+                    $value = array('$lte' => $criteriumValue);
                     break;
 
                 // if it hasn't been handled by the above then throw an exception
@@ -468,7 +484,7 @@ class MongoDBStore implements StoreInterface
 
             } else {
                 // no expression for this field have been found yet, so add it
-                $result[$criterium->getField()] = $value;
+                $result[$field] = $value;
             }
         }
 
