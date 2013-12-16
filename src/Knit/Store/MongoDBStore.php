@@ -218,7 +218,9 @@ class MongoDBStore implements StoreInterface
      * 
      * @param string $collection Name of the collection to insert into.
      * @param array $data Data that should be inserted.
-     * @return string ID of the inserted object.
+     * @return string|null ID of the inserted object.
+     * 
+     * @throws StoreQueryErrorException When there was an error inserting the data.
      */
     public function add($collection, array $data) {
         $timer = new Timer();
@@ -247,6 +249,8 @@ class MongoDBStore implements StoreInterface
      * @param string $collection Name of the collection which to update.
      * @param CriteriaExpression $criteria Criteria on which to update.
      * @param array $data Data that should be updated.
+     * 
+     * @throws StoreQueryErrorException WHen there was an error updating the data.
      */
     public function update($collection, CriteriaExpression $criteria = null, array $data) {
         $criteria = $this->parseCriteria($criteria);
