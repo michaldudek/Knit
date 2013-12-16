@@ -224,6 +224,11 @@ class MongoDBStore implements StoreInterface
     public function add($collection, array $data) {
         $timer = new Timer();
 
+        // already reserve the ID as we want to store it in a duplicated "id" field
+        $id = new MongoId();
+        $data['id'] = (string)$id;
+        $data['_id'] = $id;
+
         try {
             $result = $this->db->{$collection}->insert($data);
         } catch (MongoException $e) {
