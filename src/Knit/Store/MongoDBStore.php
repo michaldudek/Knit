@@ -369,7 +369,7 @@ class MongoDBStore implements StoreInterface
 
         // otherwise just log normally
         } else {
-            $this->logger->info($message, $context);
+            $this->logger->debug($message, $context);
         }
     }
 
