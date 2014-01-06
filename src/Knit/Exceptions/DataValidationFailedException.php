@@ -43,11 +43,11 @@ class DataValidationFailedException extends InvalidArgumentException
      * @param Exception $previous [optional] Any previously thrown exception.
      */
     public function __construct($entityClass, array $errors, $code = 0, Exception $previous = null) {
-        $message = 'Failed validating data for entity "'. $entityClass .'".';
-        parent::__construct($message, $code, $previous);
-
         $this->entityClass = $entityClass;
         $this->errors = $errors;
+
+        $message = 'Failed validating data for entity "'. $entityClass .'" ('. $this->getErrorsString() .')';
+        parent::__construct($message, $code, $previous);
     }
 
     /**
@@ -66,6 +66,19 @@ class DataValidationFailedException extends InvalidArgumentException
      */
     public function getErrors() {
         return $this->errors;
+    }
+
+    /**
+     * Converts the list of failed validators into a readable string.
+     * 
+     * @return string
+     */
+    public function getErrorsString() {
+        $string = '';
+        foreach($this->errors as $error) {
+            $string .= $error->getProperty() .': ['. implode(', ', $error->getFailedValidators()) .']; ';
+        }
+        return trim($string, '; ');
     }
 
 }
