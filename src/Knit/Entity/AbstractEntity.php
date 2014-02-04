@@ -558,6 +558,10 @@ abstract class AbstractEntity implements Dumpable
                     $value = strval($value);
                     break;
 
+                case KnitOptions::TYPE_ARRAY:
+                    $value = (array) $value;
+                    break;
+
                 default:
                     // by default all properties are strings
                     $value = strval($value);

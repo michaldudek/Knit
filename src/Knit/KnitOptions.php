@@ -17,6 +17,7 @@ interface KnitOptions
     const TYPE_STRING = 'string';
     const TYPE_FLOAT = 'float';
     const TYPE_ENUM = 'enum';
+    const TYPE_ARRAY = 'array';
 
     const LOGIC_OR = '__OR__';
     const LOGIC_AND = '__AND__';
