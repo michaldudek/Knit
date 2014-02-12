@@ -378,7 +378,7 @@ class MySQLStore implements StoreInterface
 
         // add trace but only actually if we're logging it, as this may be a heavy operation
         if (!$this->logger instanceof NullLogger) {
-            $knitDir = realpath(dirname(__FILE__) .'/../../../');
+            $knitDir = dirname(__FILE__) .'/../../../';
             $trace = Debugger::getPrettyTrace(debug_backtrace());
 
             $caller = null;

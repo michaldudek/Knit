@@ -358,7 +358,7 @@ class MongoDBStore implements StoreInterface
         ));
 
         // add trace
-        $knitDir = realpath(dirname(__FILE__) .'/../../../');
+        $knitDir = dirname(__FILE__) .'/../../../';
         $trace = Debugger::getPrettyTrace(debug_backtrace());
 
         $caller = null;
