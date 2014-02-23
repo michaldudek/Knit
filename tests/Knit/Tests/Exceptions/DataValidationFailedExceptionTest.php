@@ -12,9 +12,14 @@ class DataValidationFailedExceptionTest extends \PHPUnit_Framework_TestCase
     public function testException() {
         $errors = array();
         for($i = 0; $i < 5; $i++) {
-            $errors[] = $this->getMockBuilder('Knit\Exceptions\PropertyValidationFailedException')
+            $error = $this->getMockBuilder('Knit\Exceptions\PropertyValidationFailedException')
                 ->disableOriginalConstructor()
                 ->getMock();
+            $error->expects($this->any())
+                ->method('getFailedValidators')
+                ->will($this->returnValue(array('validator.'. $i)));
+
+            $errors[] = $error;
         }
 
         $exception = new DataValidationFailedException(
