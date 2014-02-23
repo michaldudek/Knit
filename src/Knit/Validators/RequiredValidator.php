@@ -42,15 +42,21 @@ class RequiredValidator implements ValidatorInterface
             return false;
         }
 
+        if (is_array($value)) {
+            return true;
+        }
+
         if (is_int($value) && $value === 0) {
             return true;
+        }
+
+        if (is_string($value)) {
+            $value = trim($value);
         }
 
         if (is_string($value) && $value === '0') {
             return true;
         }
-
-        $value = trim($value);
 
         return !empty($value);
     }
