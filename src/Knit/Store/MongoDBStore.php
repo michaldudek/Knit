@@ -192,6 +192,10 @@ class MongoDBStore implements StoreInterface
 
         $timer = new Timer();
 
+        if (isset($params['start'])) {
+            $params['skip'] = $params['start'];
+        }
+        
         $params = array_merge(array(
             'limit' => 0,
             'skip' => 0
