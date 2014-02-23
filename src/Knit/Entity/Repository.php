@@ -859,6 +859,15 @@ class Repository
     }
 
     /**
+     * Returns the name of the entity class connected to this repository.
+     * 
+     * @return string
+     */
+    public function getEntityClass() {
+        return $this->entityClass;
+    }
+
+    /**
      * Returns the event manager for this repository.
      * 
      * @return EventManager
