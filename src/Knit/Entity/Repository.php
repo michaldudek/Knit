@@ -288,7 +288,7 @@ class Repository
      * This will fetch profiles from their store and join them into $users based on "profile.userId = user.id" and store the profiles in user's "profile" property.
      * It will also remove all users that don't have profiles created from the $users collection.
      * 
-     * @param array $entities Array collection of entities that new entities will be joined into. Passed via reference.
+     * @param array|Entity $entities Array collection of entities or an entity that new entities will be joined into.
      * @param Repository|string $joinEntity Name of an entity class that will be joined into the collection of entities. Can also be a repository instance.
      * @param string $joinEntityProperty Name of a property from $joinEntity on which an "equals" check will be done, ie. "$joinEntityProperty = $entityProperty".
      * @param string $entityProperty Name of a property from $entities that the $joinEntity will be checked against, ie. "$joinEntityProperty = $entityProperty".
@@ -297,7 +297,15 @@ class Repository
      * @param mixed $exclude [optional] Pass KnitOptions::EXCLUDE_EMPTY here if you want parent entities that don't have a joined entity to be removed from the collection. Default: will not be removed.
      * @return array
      */
-    public function joinOne(array &$entities, $joinEntity, $joinEntityProperty, $entityProperty, $intoProperty, array $criteria = array(), $exclude = null) {
+    public function joinOne($entities, $joinEntity, $joinEntityProperty, $entityProperty, $intoProperty, array $criteria = array(), $exclude = null) {
+        $collection = true;
+        if ($entities instanceof AbstractEntity) {
+            $entities = array($entities);
+            $collection = false;
+        } elseif (!is_array($entities)) {
+            throw new InvalidArgumentException('array or AbstractEntity', $entities);
+        }
+
         // if empty collection then don't even bother
         if (empty($entities)) {
             return $entities;
@@ -329,7 +337,9 @@ class Repository
             }
         }
 
-        return $entities;
+        reset($entities);
+
+        return $collection ? $entities : current($entities);
     }
 
     /**
@@ -340,7 +350,7 @@ class Repository
      * This will fetch all messages (that haven't been deleted) for the given users based on "message.userId = user.id" and store the messages in user's "messages" property.
      * The messages will be ordered by "date" property.
      * 
-     * @param array $entities Array collection of entities that new entities will be joined into. Passed via reference.
+     * @param array|AbstractEntity $entities Array collection of entities or an entity that new entities will be joined into.
      * @param Repository|string $joinEntity Name of an entity class that will be joined into the collection of entities. Can also be a repository instance.
      * @param string $joinEntityProperty Name of a property from $joinEntity on which an "equals" check will be done, ie. "$joinEntityProperty = $entityProperty".
      * @param string $entityProperty Name of a property from $entities that the $joinEntity will be checked against, ie. "$joinEntityProperty = $entityProperty".
@@ -350,7 +360,15 @@ class Repository
      * @param mixed $exclude [optional] Pass KnitOptions::EXCLUDE_EMPTY here if you want parent entities that don't have a joined entity to be removed from the collection. Default: will not be removed.
      * @return array
      */
-    public function joinMany(array &$entities, $joinEntity, $joinEntityProperty, $entityProperty, $intoProperty, array $criteria = array(), array $params = array(), $exclude = null) {
+    public function joinMany($entities, $joinEntity, $joinEntityProperty, $entityProperty, $intoProperty, array $criteria = array(), array $params = array(), $exclude = null) {
+        $collection = true;
+        if ($entities instanceof AbstractEntity) {
+            $entities = array($entities);
+            $collection = false;
+        } elseif (!is_array($entities)) {
+            throw new InvalidArgumentException('array or AbstractEntity', $entities);
+        }
+
         // if empty collection then don't even bother
         if (empty($entities)) {
             return $entities;
@@ -381,7 +399,9 @@ class Repository
             }
         }
 
-        return $entities;
+        reset($entities);
+
+        return $collection ? $entities : current($entities);
     }
 
     /**
