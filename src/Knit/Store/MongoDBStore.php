@@ -92,7 +92,7 @@ class MongoDBStore implements StoreInterface
             }
 
             // define the DSN or connection definition string
-            $dsn = 'mongodb://'. $config['hostname'] . (isset($config['port']) ? ':'. $config['port'] : '');
+            $dsn = 'mongodb://'. $config['hostname'] . (isset($config['port']) && $config['port'] ? ':'. $config['port'] : '');
 
             // also add any additional hosts
             if (isset($config['hosts'])) {
@@ -105,7 +105,7 @@ class MongoDBStore implements StoreInterface
                         throw new InvalidArgumentException('MongoDBStore config option "hosts" must be an array of array hosts definitions with at least "hostname" key.');
                     }
 
-                    $dsn .= ','. $host['hostname'] . (isset($host['port']) ? ':'. $host['port'] : '');
+                    $dsn .= ','. $host['hostname'] . (isset($host['port']) && $host['port'] ? ':'. $host['port'] : '');
                 }
             }
 
