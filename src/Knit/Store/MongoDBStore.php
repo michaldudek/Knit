@@ -67,13 +67,13 @@ class MongoDBStore implements StoreInterface
      * 
      * @param array $config Array of all information required to connect to the store (e.g. host, user, pass, database name, port, etc.)
      */
-    public function __construct(array $config) {
+    public function __construct(array $config, LoggerInterface $logger = null) {
         // check for all required info
         if (!ArrayUtils::checkValues($config, array('hostname', 'database'))) {
             throw new InvalidArgumentException('"'. get_called_class() .'::__construct()"  expects 1st argument to be an array containing non-empty key "hostname", "'. implode('", "', array_keys($config)) .'" given.');
         }
 
-        $this->logger = new NullLogger();
+        $this->logger = $logger ? $logger : new NullLogger();
 
         try  {
             // define MongoClient options
@@ -336,7 +336,7 @@ class MongoDBStore implements StoreInterface
      * HELPERS
      *****************************************************/
     /**
-     * Logs the given PDO statement (database query) to the available logger.
+     * Logs the given query to the logger.
      * 
      * @param string $collection Name of the collection on which the query was executed.
      * @param string $type Type of the query performed, e.g. "find", "remove", "update", "insert", "count".
@@ -345,11 +345,6 @@ class MongoDBStore implements StoreInterface
      * @param bool $error [optional] Has an error occurred on this query? Default: false.
      */
     public function logQuery($collection, $type, array $criteria, array $context = array(), $error = false) {
-        // if not really logging then don't bother
-        if ($this->logger instanceof NullLogger) {
-            return;
-        }
-
         $message = $type .' @ '. $collection .': '. json_encode($criteria);
 
         $context = array_merge($context, array(
@@ -360,24 +355,6 @@ class MongoDBStore implements StoreInterface
                 'mongodb', $type, $collection
             )
         ));
-
-        // add trace
-        $knitDir = dirname(__FILE__) .'/../../../';
-        $trace = Debugger::getPrettyTrace(debug_backtrace());
-
-        $caller = null;
-
-        foreach($trace as $call) {
-            // first occurence of a file that is outside of Knit means close to getting the caller
-            if (stripos($call['file'], $knitDir) !== 0) {
-                $caller = $call;
-                break;
-            }
-        }
-
-        if ($caller) {
-            $context['caller'] = $caller;
-        }
 
         // if error occurred then log as error
         if ($error) {

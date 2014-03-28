@@ -109,7 +109,7 @@ class MySQLStore implements StoreInterface
      * 
      * @param array $config Array of all information required to connect to the store (e.g. host, user, pass, database name, port, etc.)
      */
-    public function __construct(array $config) {
+    public function __construct(array $config, LoggerInterface $logger = null) {
         // check for all required info
         if (!ArrayUtils::checkValues($config, array('hostname', 'username', 'password', 'database'))) {
             throw new \InvalidArgumentException('"'. get_called_class() .'::__construct()"  expects 1st argument to be an array containing non-empty keys: "hostname", "username", "password" and "database", "'. implode('", "', array_keys($config)) .'" given.');
@@ -121,7 +121,7 @@ class MySQLStore implements StoreInterface
         $this->password = $config['password'];
         $this->database = $config['database'];
 
-        $this->logger = new NullLogger();
+        $this->logger = $logger ? $logger : new NullLogger();
     }
 
     /*****************************************************
@@ -374,26 +374,6 @@ class MySQLStore implements StoreInterface
 
         if (isset($context['type'])) {
             $context['_tags'][] = $context['type'];
-        }
-
-        // add trace but only actually if we're logging it, as this may be a heavy operation
-        if (!$this->logger instanceof NullLogger) {
-            $knitDir = dirname(__FILE__) .'/../../../';
-            $trace = Debugger::getPrettyTrace(debug_backtrace());
-
-            $caller = null;
-
-            foreach($trace as $call) {
-                // first occurence of a file that is outside of Knit means close to getting the caller
-                if (stripos($call['file'], $knitDir) !== 0) {
-                    $caller = $call;
-                    break;
-                }
-            }
-
-            if ($caller) {
-                $context['caller'] = $caller;
-            }
         }
 
         // if error occurred then log as error
