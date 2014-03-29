@@ -272,6 +272,21 @@ class MySQLStore implements StoreInterface
         return $structure;
     }
 
+    /**
+     * Ensures that the given index is defined in the store and if not it creates it.
+     *
+     * @todo Implement.
+     *
+     * @param  string $collection Name of the collection to index.
+     * @param  array  $index Index definition array.
+     * @param  string $name  [optional] Optional name of the index.
+     * @return boolean
+     */
+    public function ensureIndex($collection, array $index, $name = null) {
+        // noop for now
+        return true;
+    }
+
     /*****************************************************
      * DATABASE CONNECTION HANDLERS
      *****************************************************/

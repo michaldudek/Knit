@@ -90,6 +90,16 @@ interface StoreInterface
      */
     public function structure($collection);
 
+    /**
+     * Ensures that the given index is defined in the store and if not it creates it.
+     *
+     * @param  string $collection Name of the collection to index.
+     * @param  array  $index Index definition array.
+     * @param  string $name  [optional] Optional name of the index.
+     * @return boolean
+     */
+    public function ensureIndex($collection, array $index, $name = null);
+
     /*****************************************************
      * SETTERS AND GETTERS
      *****************************************************/
