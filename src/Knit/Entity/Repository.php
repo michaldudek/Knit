@@ -858,6 +858,56 @@ class Repository
     }
 
     /*****************************************************
+     * INDEXES
+     *****************************************************/
+    /**
+     * Returns indexes defined on the entity. It isn't exactly the same array as returned by
+     * the Entity::_getIndexes() method, as it normalizes that array to a common structure.
+     * 
+     * @return array
+     */
+    public function getEntityIndexes() {
+        $indexes = array();
+
+        $entityClass = $this->entityClass;
+        $definedIndexes = $entityClass::_getIndexes();
+
+        // normalize the indexes array
+        foreach($definedIndexes as $name => $index) {
+            $indexes[$name] = array(
+                'properties' => array()
+            );
+
+            foreach($index['properties'] as $property => $type) {
+                if (is_int($property)) {
+                    $property = $type;
+                    $type = null;
+                }
+                $indexes[$name]['properties'][$property] = $type;
+            }
+        }
+
+        return $indexes;
+    }
+
+    /**
+     * Ensures that indexes defined in the code are set in the store.
+     *
+     * The store should create them if they are not.
+     * 
+     * @return boolean
+     */
+    public function ensureIndexes() {
+        $indexes = $this->getEntityIndexes();
+        foreach($indexes as $name => $index) {
+            $name = is_int($name) ? null : $name;
+            $this->store->ensureIndex($this->collection, $index, $name);
+        }
+
+        return true;
+    }
+
+    /*****************************************************
      * SETTERS AND GETTERS
      *****************************************************/
     /**

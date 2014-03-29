@@ -53,7 +53,7 @@ abstract class AbstractEntity implements Dumpable
      * MAPPING
      *****************************************************/
     /**
-     * Implement this function if you want to keep the entity structure in the code instead of the database.
+     * Implement this method if you want to keep the entity structure in the code instead of the database.
      * 
      * It should return a structure array.
      * 
@@ -64,7 +64,18 @@ abstract class AbstractEntity implements Dumpable
     }
 
     /**
-     * Implement this function if you want to add any Knit extensions into this entity.
+     * Implement this method if you want to keep information about the entity/collection indexes in the code.
+     *
+     * It should return an index array.
+     * 
+     * @return array
+     */
+    public static function _getIndexes() {
+        return array();
+    }
+
+    /**
+     * Implement this method if you want to add any Knit extensions into this entity.
      * 
      * It should return an array with a list of extensions by names as they are registered in Knit.
      * 
