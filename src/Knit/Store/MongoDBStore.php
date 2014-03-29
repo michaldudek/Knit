@@ -345,6 +345,7 @@ class MongoDBStore implements StoreInterface
 
         $keys = array();
         foreach($index['properties'] as $key => $type) {
+            $key = $key === 'id' ? '_id' : $key;
             $keys[$key] = $type ? $type : 1;
         }
 
