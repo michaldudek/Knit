@@ -160,7 +160,9 @@ class MongoDBStore implements StoreInterface
                 ));
             }
         } catch (MongoException $e) {
-            $this->logQuery($collection, 'find', $criteria, array(), true);
+            $this->logQuery($collection, 'find', $criteria, array(
+                'params' => $params
+            ), true);
             throw new StoreQueryErrorException('MongoDB: '. $e->getMessage(), $e->getCode(), $e);
         }
 
@@ -172,6 +174,7 @@ class MongoDBStore implements StoreInterface
 
         // log this query
         $this->logQuery($collection, 'find', $criteria, array(
+            'params' => $params,
             'executionTime' => $timer->stop(),
             'affected' => $cursor->count(true)
         ));
@@ -204,7 +207,9 @@ class MongoDBStore implements StoreInterface
         try {
             $result = $this->db->{$collection}->count($criteria, $params['limit'], $params['skip']);
         } catch (MongoException $e) {
-            $this->logQuery($collection, 'count', $criteria, array(), true);
+            $this->logQuery($collection, 'count', $criteria, array(
+                'params' => $params
+            ), true);
             throw new StoreQueryErrorException('MongoDB: '. $e->getMessage(), $e->getCode(), $e);
         }
 
@@ -370,6 +375,10 @@ class MongoDBStore implements StoreInterface
      */
     public function logQuery($collection, $type, array $criteria, array $context = array(), $error = false) {
         $message = $type .' @ '. $collection .': '. json_encode($criteria);
+
+        if (isset($context['params'])) {
+            $message .= ' with params '. json_encode($context['params']);
+        }
 
         $context = array_merge($context, array(
             'collection' => $collection,
