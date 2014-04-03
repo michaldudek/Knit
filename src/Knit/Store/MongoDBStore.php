@@ -354,7 +354,7 @@ class MongoDBStore implements StoreInterface
             $keys[$key] = $type ? $type : 1;
         }
 
-        $result = $this->db->{$collection}->ensureIndex($index['properties'], array(
+        $result = $this->db->{$collection}->ensureIndex($keys, array(
             'background' => true
         ));
 
