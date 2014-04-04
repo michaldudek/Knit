@@ -428,9 +428,17 @@ class MongoDBStore implements StoreInterface
 
                 if (is_array($criteriumValue)) {
                     foreach($criteriumValue as $i => $id) {
+                        if (empty($id)) {
+                            continue;
+                        }
+
                         $criteriumValue[$i] = new MongoId($id);
                     }
                 } else {
+                    if (empty($criteriumValue)) {
+                        continue;
+                    }
+
                     $criteriumValue = new MongoId($criteriumValue);
                 }
             }
