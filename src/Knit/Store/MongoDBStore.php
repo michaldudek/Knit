@@ -155,9 +155,21 @@ class MongoDBStore implements StoreInterface
             }
 
             if (isset($params['orderBy'])) {
-                $cursor->sort(array(
-                    $params['orderBy'] => (isset($params['orderDir']) && strtolower($params['orderDir']) === 'desc') ? -1 : 1
-                ));
+                $orderBy = array();
+                if (is_string($params['orderBy'])) {
+                    $orderBy[$params['orderBy']] = isset($params['orderDir']) && mb_strtolower($params['orderDir']) === 'desc' ? -1 : 1;
+                } else {
+                    foreach($params['orderBy'] as $field => $order) {
+                        if (!is_string($field)) {
+                            $field = $order;
+                            $order = 'ASC';
+                        }
+                        $orderBy[$field] = mb_strtolower($order) === 'desc' ? -1 : 1;
+                    }
+                }
+                if (!empty($orderBy)) {
+                    $cursor->sort($orderBy);
+                }
             }
         } catch (MongoException $e) {
             $this->logQuery($collection, 'find', $criteria, array(
@@ -428,9 +440,17 @@ class MongoDBStore implements StoreInterface
 
                 if (is_array($criteriumValue)) {
                     foreach($criteriumValue as $i => $id) {
+                        if (empty($id)) {
+                            continue;
+                        }
+
                         $criteriumValue[$i] = new MongoId($id);
                     }
                 } else {
+                    if (empty($criteriumValue)) {
+                        continue;
+                    }
+
                     $criteriumValue = new MongoId($criteriumValue);
                 }
             }

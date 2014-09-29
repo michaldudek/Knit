@@ -150,15 +150,7 @@ class Repository
             $this->addExtension($extension);
         }
 
-        // and remember default properties
-        foreach($structure as $property => $info) {
-            if (isset($info['default'])) {
-                $this->defaults[$property] = $info['default'];
-            } else if ($property !== $this->getIdProperty() && isset($info['required']) && $info['required']) {
-                // automatically set required properties to null so they don't validate
-                $this->defaults[$property] = null;
-            }
-        }
+        $this->updateDefaults();
 
         // call the store callback
         $this->store->didBindToRepository($this);
@@ -659,6 +651,7 @@ class Repository
     public function extendEntityStructure(array $structure) {
         $entityStructure = $this->getEntityStructure();
         $this->entityStructure = ArrayUtils::mergeDeep($entityStructure, $structure);
+        $this->updateDefaults();
         return $this->entityStructure;
     }
 
@@ -704,6 +697,20 @@ class Repository
         $hiddenPropertyNames = ArrayUtils::filterByKeyValue($structure, 'hidden', true, true);
         $this->hiddenPropertyNames = array_keys($hiddenPropertyNames);
         return $this->hiddenPropertyNames;
+    }
+
+    /**
+     * Updates default values of the linked entity based on current structure definition.
+     */
+    protected function updateDefaults() {
+        foreach($this->getEntityStructure() as $property => $info) {
+            if (isset($info['default'])) {
+                $this->defaults[$property] = $info['default'];
+            } else if ($property !== $this->getIdProperty() && isset($info['required']) && $info['required']) {
+                // automatically set required properties to null so they don't validate
+                $this->defaults[$property] = null;
+            }
+        }
     }
 
     /**
