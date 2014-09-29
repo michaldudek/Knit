@@ -40,6 +40,13 @@ abstract class AbstractEntity implements Dumpable
     protected $_properties = array();
 
     /**
+     * The entity's original properties, as they were retrieved from the store.
+     * 
+     * @var array
+     */
+    protected $__originalProperties = array();
+
+    /**
      * Should notices about this entity being unlinked to a repository be triggered?
      * 
      * Not linking an entity to a repository can lead to some unexpected behavior and turns off several features
@@ -107,7 +114,7 @@ abstract class AbstractEntity implements Dumpable
 
         if ($valid) {    
             foreach($data as $var => $value) {
-                call_user_func_array(array($this, ObjectUtils::setter($var)), array($value));
+                call_user_func(array($this, ObjectUtils::setter($var)), $value);
             }
         }
     }
@@ -152,8 +159,15 @@ abstract class AbstractEntity implements Dumpable
      * @param array $properties Array of properties to be set.
      */
     public function _setProperties(array $properties) {
+        // if no original properties have been cached yet then use these properties
+        $setOriginalProperties = empty($this->__originalProperties);
+
         foreach($properties as $var => $value) {
-            $this->_setProperty($var, $value);
+            $value = $this->_setProperty($var, $value);
+
+            if ($setOriginalProperties) {
+                $this->__originalProperties[$var] = $value;
+            }
         }
     }
     
@@ -170,16 +184,39 @@ abstract class AbstractEntity implements Dumpable
     }
 
     /**
+     * Returns those properties of the entity that have changed since it was retrieved
+     * from its repository.
+     * 
+     * @return array
+     */
+    public function _getDiffProperties() {
+        $diffProperties = array();
+
+        foreach($this->_getProperties() as $var => $value) {
+            if (!isset($this->__originalProperties[$var]) || $value !== $this->__originalProperties[$var]) {
+                $diffProperties[$var] = $value;
+            }
+        }
+
+        return $diffProperties;
+    }
+
+    /**
      * Set a property.
      * 
      * Setting property through this method will not use the setter nor validators
      * but rather set the value directly.
+     *
+     * Returns the `$value` cast to the proper `$property` type.
      * 
      * @param string $property Name of the property.
      * @param mixed $value Value to set to.
+     * @return mixed
      */
     public function _setProperty($property, $value) {
-        $this->_properties[$property] = $this->_castPropertyType($property, $value);
+        $castProperty = $this->_castPropertyType($property, $value);
+        $this->_properties[$property] = $castProperty;
+        return $castProperty;
     }
     
     /**

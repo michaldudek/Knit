@@ -518,12 +518,19 @@ class Repository
             return;
         }
 
+        $diffProperties = $this->getPropertiesForStore($entity, true);
+
+        // if nothing to update then don't bother with querying the store
+        if (empty($diffProperties)) {
+            return;
+        }
+
         $idProperty = $this->getIdProperty();
         $criteria = $this->parseCriteriaArray(array(
             $idProperty => $entity->_getId()
         ));
-        
-        $this->store->update($this->collection, $criteria, $this->getPropertiesForStore($entity));
+
+        $this->store->update($this->collection, $criteria, $diffProperties);
 
         $this->getEventManager()->trigger(new DidUpdateEntity($entity));
     }
@@ -658,13 +665,18 @@ class Repository
     /**
      * Returns only those properties of the entity that can be saved directly in the persistent store.
      * It filters out all properties that have been added by the user.
-     * 
+     *
+     * Optionally it can also filter out those properties that have not been changed since
+     * the entity was retrieved from the store.
+     *
+     * @param AbstractEntity $entity Entity for which to get the properties.
+     * @param bool $onlyDiff [optional] If `true` then only return those properties that have changed.
      * @return array Array of filtered properties.
      */
-    public function getPropertiesForStore(AbstractEntity $entity) {
+    public function getPropertiesForStore(AbstractEntity $entity, $onlyDiff = false) {
         $this->checkEntityOwnership($entity);
 
-        $properties = $entity->_getProperties();
+        $properties = $onlyDiff ? $entity->_getDiffProperties() : $entity->_getProperties();
         $structure = $this->getEntityStructure();
         $storeProperties = array();
 
