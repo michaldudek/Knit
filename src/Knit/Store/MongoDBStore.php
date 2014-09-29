@@ -296,7 +296,9 @@ class MongoDBStore implements StoreInterface
         $timer = new Timer();
 
         try {
-            $info = $this->db->{$collection}->update($criteria, $data, array(
+            $info = $this->db->{$collection}->update($criteria, array(
+                '$set' => $data // use '$set' operator because update should only update those specific fields
+            ), array(
                 'multiple' => $multiple // always allow multi updates
             ));
         } catch (MongoException $e) {
