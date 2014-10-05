@@ -524,15 +524,21 @@ abstract class AbstractEntity implements Dumpable
      * @return array
      */
     public function toArray() {
-        $repository = $this->_getRepository();
+        $propertyNames = array_keys($this->_getProperties());
 
-        $properties = $this->_getProperties();
+        $repository = $this->_getRepository();
         $hiddenPropertyNames = $repository ? $repository->getHiddenPropertyNames() : array();
 
-        foreach($properties as $property => $value) {
+        $properties = array();
+
+        foreach($propertyNames as $property) {
             if (in_array($property, $hiddenPropertyNames)) {
-                unset($properties[$property]);
+                continue;
             }
+
+            // create getter
+            $getter = ObjectUtils::getter($property);
+            $properties[$property] = $this->$getter();
         }
 
         return $properties;
