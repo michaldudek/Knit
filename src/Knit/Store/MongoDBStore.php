@@ -441,13 +441,16 @@ class MongoDBStore implements StoreInterface
                 $field = '_id';
 
                 if (is_array($criteriumValue)) {
+                    $ids = array();
                     foreach($criteriumValue as $i => $id) {
                         if (empty($id)) {
                             continue;
                         }
 
-                        $criteriumValue[$i] = new MongoId($id);
+                        $ids[] = new MongoId($id);
                     }
+                    // reseted keys and removed empty values
+                    $criteriumValue = $ids;
                 } else {
                     if (empty($criteriumValue)) {
                         continue;
