@@ -397,6 +397,82 @@ class Repository
     }
 
     /**
+     * Joins one collection of entities with another where the entities from the 1st collection hold ID's of entities they
+     * should be joined with.
+     *
+     * For example if an entity "Article" has a property "categories_ids" which is an array that holds ID's of "Category"
+     * entities, you can join these categories using this method.
+     *
+     * @param array|AbstractEntity $entities Array collection of entities or an entity that new entities will be joined into.
+     * @param Repository|string $joinEntity Name of an entity class that will be joined into the collection of entities. Can also be a repository instance.
+     * @param string $entityProperty Name of a property from $entities that the $joinEntity will be checked against, ie. "$joinEntityProperty = $entityProperty".
+     * @param string $intoProperty Name of a property that the joined entities will be saved to in the parent property.
+     * @param array $criteria [optional] Array of any additional criteria on which the join entities will be fetched from their store.
+     * @param array $params [optional] Array of any additional params (like "orderBy") that will be used for fetching the join entities.
+     * @param mixed $exclude [optional] Pass KnitOptions::EXCLUDE_EMPTY here if you want parent entities that don't have a joined entity to be removed from the collection. Default: will not be removed.
+     * @return array
+     */
+    public function joinManyById($entities, $joinEntity, $entityProperty, $intoProperty, array $criteria = array(), array $params = array(), $exclude = null) {
+        $collection = true;
+        if ($entities instanceof AbstractEntity) {
+            $entities = array($entities);
+            $collection = false;
+        } elseif (!is_array($entities)) {
+            throw new InvalidArgumentException('array or AbstractEntity', $entities);
+        }
+
+        if (empty($entities)) {
+            return $entities;
+        }
+
+        // gather id's of entities we want to join
+        $joinEntityIds = array();
+        foreach($entities as $entity) {
+            $ids = $entity->$entityProperty;
+            $ids = is_array($ids) ? $ids : array($ids);
+            $joinEntityIds = array_merge($joinEntityIds, ArrayUtils::resetKeys($ids));
+        }
+        $joinEntityIds = array_unique($joinEntityIds);
+
+        // fetch the entities that we want to join
+        $joinEntityRepository = ($joinEntity instanceof self) ? $joinEntity : $this->knit->getRepository($joinEntity);
+
+        $joinEntities = $joinEntityRepository->find(array_merge($criteria, array(
+            'id' => array_unique($joinEntityIds)
+        )), $params);
+        $joinEntities = ObjectUtils::indexBy($joinEntities, 'id');
+
+        // now join these entities
+        foreach($entities as $entity) {
+            $items = array();
+
+            $ids = $entity->$entityProperty;
+            $ids = is_array($ids) ? $ids : array($ids);
+
+            foreach($ids as $id) {
+                if (isset($joinEntities[$id])) {
+                    $items[] = $joinEntities[$id];
+                }
+            }
+
+            $entity->$intoProperty = $items;
+        }
+
+        // remove those entities that couldn't be joined with anything
+        if ($exclude === KnitOptions::EXCLUDE_EMPTY) {
+            foreach($entities as $i => $entity) {
+                if (!isset($entity->$intoProperty) || empty($entity->$intoProperty)) {
+                    unset($entities[$i]);
+                }
+            }
+        }
+
+        reset($entities);
+
+        return $collection ? $entities : current($entities);
+    }
+
+    /**
      * Create "magic" functions for findBy* and fineOneBy*
      * 
      * @param string $name Method name
