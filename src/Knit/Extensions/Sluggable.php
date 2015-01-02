@@ -38,7 +38,6 @@ class Sluggable implements ExtensionInterface
         $repository->extendEntityStructure(array(
             'slug' => array(
                 'type' => KnitOptions::TYPE_STRING,
-                'maxLength' => 50,
                 'required' => false,
                 'default' => ''
             )
