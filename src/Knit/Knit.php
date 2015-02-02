@@ -298,9 +298,7 @@ class Knit
      * @throws \RuntimeException When the entity repository doesn't extend Knit\Entity\Repository class.
      */
     public function getRepository($entityClass) {
-        $entityClass = is_object($entityClass) && $entityClass instanceof AbstractEntity
-            ? Debugger::getClass($entityClass)
-            : $entityClass;
+        $entityClass = is_object($entityClass) ? Debugger::getClass($entityClass) : $entityClass;
             
         if (isset($this->repositories[$entityClass])) {
             return $this->repositories[$entityClass];
