@@ -292,12 +292,16 @@ class Knit
     /**
      * Returns repository for the given entity.
      * 
-     * @param string $entityClass Class name (full, with namespace) of the entity.
+     * @param string|object $entityClass Class name (full, with namespace) of the entity, or an entity.
      * @return Repository
      * 
      * @throws \RuntimeException When the entity repository doesn't extend Knit\Entity\Repository class.
      */
     public function getRepository($entityClass) {
+        $entityClass = is_object($entityClass) && $entityClass instanceof AbstractEntity
+            ? Debugger::getClass($entityClass)
+            : $entityClass;
+            
         if (isset($this->repositories[$entityClass])) {
             return $this->repositories[$entityClass];
         }
