@@ -21,5 +21,10 @@
             "Knit\\Tests": "tests/",
             "Knit": "src/"
         }
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-release/0.1-beta": "0.1.x-dev"
+        }
     }
 }
