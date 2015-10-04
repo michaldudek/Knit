@@ -1,4 +1,4 @@
 Knit
 ====
 
-Basic and quick PHP ORM/ODM.
+Simple repository-centric data mapper.

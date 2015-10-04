@@ -5,17 +5,12 @@
     backupGlobals               = "false"
     backupStaticAttributes      = "false"
     colors                      = "true"
-    convertErrorsToExceptions   = "true"
-    convertNoticesToExceptions  = "true"
-    convertWarningsToExceptions = "true"
-    processIsolation            = "false"
     stopOnFailure               = "false"
     syntaxCheck                 = "false"
-    mapTestClassNameToCoveredClassName="true"
-    bootstrap                   = "tests/bootstrap.php" >
-
+    bootstrap                   = "vendor/autoload.php"
+>
     <testsuites>
-        <testsuite name="Knit Test Suite">
+        <testsuite name="Knit">
             <directory>tests</directory>
         </testsuite>
     </testsuites>
@@ -25,9 +20,5 @@
             <directory>src</directory>
         </whitelist>
     </filter>
-
-    <logging>
-         <log type="coverage-html" target="tests/coverage" charset="UTF-8" highlight="false" />
-    </logging>
 
 </phpunit>

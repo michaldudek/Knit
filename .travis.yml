@@ -1,0 +1,14 @@
+language: php
+php:
+    - 7.0
+    - 5.6
+    - 5.5
+    - hhvm
+
+script:
+    - make install
+    - make qa
+
+notifications:
+    email:
+        - michal@michaldudek.pl

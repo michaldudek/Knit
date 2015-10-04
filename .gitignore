@@ -1,4 +1,4 @@
 composer.lock
-/vendor/
-/tests/coverage/
-/tests/tmp
+phpunit.xml
+/vendor
+/resources/coverage
