@@ -6,12 +6,11 @@ use Knit\Exceptions\InvalidOperatorException;
 /**
  * Criteria property value class.
  *
- * @package Knit
+ * @package    Knit
  * @subpackage Criteria
- * @author Michał Pałys-Dudek <michal@michaldudek.pl>
- *
- * @copyright Copyright (c) 2013-2015, Michał Pałys-Dudek
- * @license MIT
+ * @author     Michał Pałys-Dudek <michal@michaldudek.pl>
+ * @copyright  2015 Michał Pałys-Dudek
+ * @license    https://github.com/michaldudek/Knit/blob/master/LICENSE.md MIT License
  */
 class PropertyValue
 {
@@ -65,7 +64,7 @@ class PropertyValue
         $this->property = $explodedKey[0];
         if (empty($this->property)) {
             throw new \InvalidArgumentException(
-                sprintf('Property name part of a key should not be empty in criteria expression, "%s" given.', $key);
+                sprintf('Property name part of a key should not be empty in criteria expression, "%s" given.', $key)
             );
         }
 
@@ -87,7 +86,7 @@ class PropertyValue
     /**
      * Handles EQUALS operator.
      *
-     * @param mixed $value
+     * @param mixed $value Criteria value.
      */
     protected function eqOperator($value)
     {
@@ -104,7 +103,7 @@ class PropertyValue
     /**
      * Handles NOT operator
      *
-     * @param mixed $value
+     * @param mixed $value Criteria value.
      */
     protected function notOperator($value)
     {
@@ -115,7 +114,7 @@ class PropertyValue
     /**
      * Handles IN operator.
      *
-     * @param array $value Value has to be an array.
+     * @param array $value Criteria value.
      */
     protected function inOperator(array $value)
     {
@@ -126,7 +125,7 @@ class PropertyValue
     /**
      * Handles GREATER THAN operator.
      *
-     * @param mixed $value
+     * @param mixed $value Criteria value.
      */
     protected function gtOperator($value)
     {
@@ -137,7 +136,7 @@ class PropertyValue
     /**
      * Handles GREATER THAN EQUAL operator
      *
-     * @param mixed $value
+     * @param mixed $value Criteria value.
      */
     protected function gteOperator($value)
     {
@@ -148,7 +147,7 @@ class PropertyValue
     /**
      * Handles LOWER THAN operator
      *
-     * @param mixed $value
+     * @param mixed $value Criteria value.
      */
     protected function ltOperator($value)
     {
@@ -159,7 +158,7 @@ class PropertyValue
     /**
      * Handles LOWER THAN EQUAL operator
      *
-     * @param mixed $value
+     * @param mixed $value Criteria value.
      */
     protected function lteOperator($value)
     {
