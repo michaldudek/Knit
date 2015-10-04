@@ -1,21 +1,23 @@
 <?php
-/**
- * Criteria field value class.
- * 
- * @package Knit
- * @subpackage Criteria
- * @author Michał Dudek <michal@michaldudek.pl>
- * 
- * @copyright Copyright (c) 2013, Michał Dudek
- * @license MIT
- */
 namespace Knit\Criteria;
 
 use Knit\Exceptions\InvalidOperatorException;
 
-class FieldValue
+/**
+ * Criteria property value class.
+ *
+ * @package Knit
+ * @subpackage Criteria
+ * @author Michał Pałys-Dudek <michal@michaldudek.pl>
+ *
+ * @copyright Copyright (c) 2013-2015, Michał Pałys-Dudek
+ * @license MIT
+ */
+class PropertyValue
 {
-
+    /**
+     * Operator constants.
+     */
     const OPERATOR_EQUALS = '__EQUALS__';
     const OPERATOR_NOT = '__NOT__';
     const OPERATOR_IN = '__IN__';
@@ -25,41 +27,46 @@ class FieldValue
     const OPERATOR_LOWER_THAN_EQUAL = '__LOWER_THAN_EQUAL__';
 
     /**
-     * Name of the field.
-     * 
+     * Property name.
+     *
      * @var string
      */
-    protected $field;
+    protected $property;
 
     /**
-     * Whatever value to use in comparison.
-     * 
+     * Criteria value.
+     *
      * @var mixed
      */
     protected $value;
 
     /**
-     * Operator that should be used in comparison.
-     * 
+     * Criteria operator.
+     *
      * @var string
      */
     protected $operator;
 
     /**
      * Constructor.
-     * 
-     * @param string $key Key of the expression that includes name of a field, a semi-colon and an operator, e.g. "id:not",
-     *                    where only field name is mandatory.
-     * @param mixed $value Whatever value the field should have.
+     *
+     * @param string $key Criteria expression key that includes property name and an optional operator prefixed with `:`
+     *                    e.g. `id:not`.
+     * @param mixed $value Value for criteria filter.
+     *
+     * @throws InvalidOperatorException When invalid or unsupported operator given.
      */
-    public function __construct($key, $value) {
+    public function __construct($key, $value)
+    {
         // explode the key in search for an operator
         $explodedKey = explode(':', $key);
 
-        // just specify the field name
-        $this->field = $explodedKey[0];
-        if (empty($this->field)) {
-            throw new \InvalidArgumentException('Field name part of a key should not be empty in criteria expression, "'. $key .'" given.');
+        // just specify the property name
+        $this->property = $explodedKey[0];
+        if (empty($this->property)) {
+            throw new \InvalidArgumentException(
+                sprintf('Property name part of a key should not be empty in criteria expression, "%s" given.', $key);
+            );
         }
 
         // if there was no operator specified then use the EQUALS operator by default
@@ -68,7 +75,7 @@ class FieldValue
 
         // if there is no function defined to handle this operator then throw an exception
         if (!method_exists($this, $operatorFn)) {
-            throw new InvalidOperatorException('Unrecognized operator passed in criteria, "'. $key .'" given.');
+            throw new InvalidOperatorException(sprintf('Unrecognized operator passed in criteria, "%s" given.', $key));
         }
         
         $this->$operatorFn($value);
@@ -79,10 +86,11 @@ class FieldValue
      *****************************************************/
     /**
      * Handles EQUALS operator.
-     * 
+     *
      * @param mixed $value
      */
-    protected function eqOperator($value) {
+    protected function eqOperator($value)
+    {
         // if array passed then redirect to IN operator
         if (is_array($value)) {
             $this->inOperator($value);
@@ -95,60 +103,66 @@ class FieldValue
 
     /**
      * Handles NOT operator
-     * 
+     *
      * @param mixed $value
      */
-    protected function notOperator($value) {
+    protected function notOperator($value)
+    {
         $this->operator = self::OPERATOR_NOT;
         $this->value = $value;
     }
 
     /**
      * Handles IN operator.
-     * 
+     *
      * @param array $value Value has to be an array.
      */
-    protected function inOperator(array $value) {
+    protected function inOperator(array $value)
+    {
         $this->operator = self::OPERATOR_IN;
         $this->value = $value;
     }
 
     /**
      * Handles GREATER THAN operator.
-     * 
+     *
      * @param mixed $value
      */
-    protected function gtOperator($value) {
+    protected function gtOperator($value)
+    {
         $this->operator = self::OPERATOR_GREATER_THAN;
         $this->value = $value;
     }
 
     /**
      * Handles GREATER THAN EQUAL operator
-     * 
+     *
      * @param mixed $value
      */
-    protected function gteOperator($value) {
+    protected function gteOperator($value)
+    {
         $this->operator = self::OPERATOR_GREATER_THAN_EQUAL;
         $this->value = $value;
     }
 
     /**
      * Handles LOWER THAN operator
-     * 
+     *
      * @param mixed $value
      */
-    protected function ltOperator($value) {
+    protected function ltOperator($value)
+    {
         $this->operator = self::OPERATOR_LOWER_THAN;
         $this->value = $value;
     }
 
     /**
      * Handles LOWER THAN EQUAL operator
-     * 
+     *
      * @param mixed $value
      */
-    protected function lteOperator($value) {
+    protected function lteOperator($value)
+    {
         $this->operator = self::OPERATOR_LOWER_THAN_EQUAL;
         $this->value = $value;
     }
@@ -157,30 +171,32 @@ class FieldValue
      * SETTERS AND GETTERS
      *****************************************************/
     /**
-     * Returns name of the field.
-     * 
+     * Returns criteria property name.
+     *
      * @return string
      */
-    public function getField() {
-        return $this->field;
+    public function getProperty()
+    {
+        return $this->property;
     }
 
     /**
-     * Returns whatever value should be used in the comparison.
-     * 
+     * Returns criteria property value.
+     *
      * @return mixed
      */
-    public function getValue() {
+    public function getValue()
+    {
         return $this->value;
     }
 
     /**
-     * Returns the operator to be used in the comparison.
-     * 
+     * Returns the criteria operator.
+     *
      * @return string
      */
-    public function getOperator() {
+    public function getOperator()
+    {
         return $this->operator;
     }
-
 }
