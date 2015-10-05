@@ -1,6 +1,8 @@
 <?php
 namespace Knit\Criteria;
 
+use MD\Foundation\Utils\StringUtils;
+
 use Knit\Exceptions\InvalidOperatorException;
 
 /**
@@ -20,10 +22,13 @@ class PropertyValue
     const OPERATOR_EQUALS = '__EQUALS__';
     const OPERATOR_NOT = '__NOT__';
     const OPERATOR_IN = '__IN__';
+    const OPERATOR_NOT_IN = '__NOT_IN__';
     const OPERATOR_GREATER_THAN = '__GREATHER_THAN__';
     const OPERATOR_GREATER_THAN_EQUAL = '__GREATHER_THAN_EQUAL__';
     const OPERATOR_LOWER_THAN = '__LOWER_THAN__';
     const OPERATOR_LOWER_THAN_EQUAL = '__LOWER_THAN_EQUAL__';
+    const OPERATOR_LIKE = '__LIKE__';
+    const OPERATOR_NOT_LIKE = '__NOT_LIKE__';
 
     /**
      * Property name.
@@ -70,7 +75,7 @@ class PropertyValue
 
         // if there was no operator specified then use the EQUALS operator by default
         $operator = (isset($explodedKey[1])) ? strtolower($explodedKey[1]) : 'eq';
-        $operatorFn = $operator .'Operator';
+        $operatorFn = StringUtils::toCamelCase($operator, '_') .'Operator';
 
         // if there is no function defined to handle this operator then throw an exception
         if (!method_exists($this, $operatorFn)) {
@@ -107,6 +112,12 @@ class PropertyValue
      */
     protected function notOperator($value)
     {
+        // if array passed then redirect to NOT IN operator
+        if (is_array($value)) {
+            $this->notInOperator($value);
+            return;
+        }
+
         $this->operator = self::OPERATOR_NOT;
         $this->value = $value;
     }
@@ -119,6 +130,17 @@ class PropertyValue
     protected function inOperator(array $value)
     {
         $this->operator = self::OPERATOR_IN;
+        $this->value = $value;
+    }
+
+    /**
+     * Handles NOT IN operator.
+     *
+     * @param array  $value Criteria value.
+     */
+    protected function notInOperator(array $value)
+    {
+        $this->operator = self::OPERATOR_NOT_IN;
         $this->value = $value;
     }
 
@@ -163,6 +185,28 @@ class PropertyValue
     protected function lteOperator($value)
     {
         $this->operator = self::OPERATOR_LOWER_THAN_EQUAL;
+        $this->value = $value;
+    }
+
+    /**
+     * Handles LIKE operator.
+     *
+     * @param string $value Criteria value.
+     */
+    protected function likeOperator($value)
+    {
+        $this->operator = self::OPERATOR_LIKE;
+        $this->value = $value;
+    }
+
+    /**
+     * Handles NOT LIKE operator.
+     *
+     * @param string $value Criteria value.
+     */
+    protected function notLikeOperator($value)
+    {
+        $this->operator = self::OPERATOR_NOT_LIKE;
         $this->value = $value;
     }
 
