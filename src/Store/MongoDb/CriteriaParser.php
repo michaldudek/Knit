@@ -139,6 +139,8 @@ class CriteriaParser
      * @param mixed  $value    Expected property value.
      *
      * @return mixed
+     *
+     * @throws InvalidOperatorException When not supported operator was passed.
      */
     private function parseOperator($operator, $value)
     {
@@ -150,27 +152,27 @@ class CriteriaParser
                 break;
 
             case PropertyValue::OPERATOR_NOT:
-                $result = array('$ne' => $value);
+                $result = ['$ne' => $value];
                 break;
 
             case PropertyValue::OPERATOR_IN:
-                $result = array('$in' => $value);
+                $result = ['$in' => $value];
                 break;
 
             case PropertyValue::OPERATOR_GREATER_THAN:
-                $result = array('$gt' => $value);
+                $result = ['$gt' => $value];
                 break;
 
             case PropertyValue::OPERATOR_GREATER_THAN_EQUAL:
-                $result = array('$gte' => $value);
+                $result = ['$gte' => $value];
                 break;
 
             case PropertyValue::OPERATOR_LOWER_THAN:
-                $result = array('$lt' => $value);
+                $result = ['$lt' => $value];
                 break;
 
             case PropertyValue::OPERATOR_LOWER_THAN_EQUAL:
-                $result = array('$lte' => $value);
+                $result = ['$lte' => $value];
                 break;
 
             // if it hasn't been handled by the above then throw an exception
