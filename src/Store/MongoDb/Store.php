@@ -16,6 +16,7 @@ use MD\Foundation\Utils\ArrayUtils;
 
 use Knit\Criteria\CriteriaExpression;
 use Knit\Exceptions\StoreConnectionFailedException;
+use Knit\Exceptions\StoreQueryErrorException;
 use Knit\Store\MongoDb\CriteriaParser;
 use Knit\Store\StoreInterface;
 use Knit\KnitOptions;
@@ -31,7 +32,7 @@ use Knit\KnitOptions;
  *
  * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
  */
-class Store implements StoreInterface
+class Store implements StoreInterface, LoggerAwareInterface
 {
     use LoggerAwareTrait;
 
@@ -59,9 +60,9 @@ class Store implements StoreInterface
     /**
      * Constructor.
      *
-     * @param array           $config         Connection config.
-     * @param CriteriaParser  $criteriaParser Knit criteria parser for MongoDB.
-     * @param LoggerInterface $logger         [optional] Logger.
+     * @param array                $config         Connection config.
+     * @param CriteriaParser       $criteriaParser Knit criteria parser for MongoDB.
+     * @param LoggerInterface|null $logger         [optional] Logger.
      *
      * @SuppressWarnings(PHPMD.CyclomaticComplexity,PHPMD.NPathComplexity)
      */
@@ -72,8 +73,8 @@ class Store implements StoreInterface
             throw new \InvalidArgumentException('Invalid config passed to '. __CLASS__ .'.');
         }
 
-        $this->logger = $logger ? $logger : new NullLogger();
         $this->criteriaParser = $criteriaParser;
+        $this->logger = $logger ? $logger : new NullLogger();
 
         try {
             // define MongoClient options
@@ -156,6 +157,12 @@ class Store implements StoreInterface
                     $cursor->sort($orderBy);
                 }
             }
+
+            // parse the results
+            $result = [];
+            while ($cursor->hasNext()) {
+                $result[] = $cursor->getNext();
+            }
         } catch (MongoException $e) {
             $this->log(
                 'find',
@@ -165,12 +172,6 @@ class Store implements StoreInterface
                 'error'
             );
             throw new StoreQueryErrorException('MongoDB: '. $e->getMessage(), $e->getCode(), $e);
-        }
-
-        // parse the results
-        $result = [];
-        while ($cursor->hasNext()) {
-            $result[] = $cursor->getNext();
         }
 
         // log this query
@@ -361,6 +362,26 @@ class Store implements StoreInterface
                 'affected' => is_array($info) ? $info['n'] : 'unknown'
             ]
         );
+    }
+
+    /**
+     * Returns the MongoClient connection.
+     *
+     * @return MongoClient
+     */
+    public function getClient()
+    {
+        return $this->client;
+    }
+
+    /**
+     * Returns the MongoDB database connection.
+     *
+     * @return MongoDB
+     */
+    public function getDatabase()
+    {
+        return $this->database;
     }
 
     /**
