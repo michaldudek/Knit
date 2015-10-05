@@ -23,7 +23,7 @@ interface StoreInterface
      *
      * @return array
      */
-    public function find($collection, CriteriaExpression $criteria = null, array $params = array());
+    public function find($collection, CriteriaExpression $criteria = null, array $params = []);
 
     /**
      * Counts items within a collection.
@@ -36,7 +36,7 @@ interface StoreInterface
      *
      * @return integer|array
      */
-    public function count($collection, CriteriaExpression $criteria = null, array $params = array());
+    public function count($collection, CriteriaExpression $criteria = null, array $params = []);
 
     /**
      * Persists a new item in the collection.

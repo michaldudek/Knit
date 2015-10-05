@@ -12,6 +12,12 @@ namespace Knit;
 interface KnitOptions
 {
     /**
+     * Order constants.
+     */
+    const ORDER_ASC = 1;
+    const ORDER_DESC = -1;
+
+    /**
      * Type constants.
      */
     //const TYPE_INT = 'int';
