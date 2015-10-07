@@ -17,6 +17,8 @@ use Knit\DataMapper\DataMapperInterface;
  */
 class ArraySerializer implements DataMapperInterface
 {
+    private $identifiers = [];
+
     /**
      * Checks whether or not the data mapper supports the given class.
      *
@@ -29,6 +31,47 @@ class ArraySerializer implements DataMapperInterface
     public function supports($class)
     {
         return Debugger::isImplementing($class, ArraySerializableInterface::class);
+    }
+
+    /**
+     * Returns the name of the identifier/primary key of objects of the given class.
+     *
+     * It may return an array or strings for compound keys.
+     *
+     * @param string $class Class name.
+     *
+     * @return string|array
+     */
+    public function identifier($class)
+    {
+        $object = new $class;
+        return $object->identifier();
+    }
+
+    /**
+     * Identify the given object by returning its identifier/primary key.
+     *
+     * Should return `null` if the object cannot be identified (e.g. has not yet been persisted in its store and
+     * doesn't have an identifier assigned).
+     *
+     * @param object $object Object to be identified.
+     *
+     * @return mixed
+     */
+    public function identify($object)
+    {
+        return $object->identify();
+    }
+
+    /**
+     * Sets an identifier on the given object.
+     *
+     * @param object $object     Object to be identified.
+     * @param mixed  $identifier Identifier to be set on the object.
+     */
+    public function identifyWith($object, $identifier)
+    {
+        $object->identifyWith($identifier);
     }
 
     /**

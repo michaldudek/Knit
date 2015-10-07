@@ -27,7 +27,41 @@ interface DataMapperInterface
     public function supports($class);
 
     /**
+     * Returns the name of the identifier/primary key of objects of the given class.
+     *
+     * It may return an array or strings for compound keys.
+     *
+     * @param string $class Class name.
+     *
+     * @return string|array
+     */
+    public function identifier($class);
+
+    /**
+     * Identify the given object by returning its identifier/primary key.
+     *
+     * Should return `null` if the object cannot be identified (e.g. has not yet been persisted in its store and
+     * doesn't have an identifier assigned).
+     *
+     * @param object $object Object to be identified.
+     *
+     * @return mixed
+     */
+    public function identify($object);
+
+    /**
+     * Sets an identifier on the given object.
+     *
+     * @param object $object     Object to be identified.
+     * @param mixed  $identifier Identifier to be set on the object.
+     */
+    public function identifyWith($object, $identifier);
+
+    /**
      * Populates the given object with data from the given array.
+     *
+     * Note: the `$data` array may not contain all object data, but only a subset of it,
+     * so the underlying implementation should not assume that.
      *
      * @param object $object Object to be populated.
      * @param array  $data   Data to populate the object with.
