@@ -18,15 +18,6 @@ interface KnitOptions
     const ORDER_DESC = -1;
 
     /**
-     * Type constants.
-     */
-    //const TYPE_INT = 'int';
-    //const TYPE_STRING = 'string';
-    //const TYPE_FLOAT = 'float';
-    //const TYPE_ENUM = 'enum';
-    //const TYPE_ARRAY = 'array';
-
-    /**
      * Logic constants.
      */
     const LOGIC_OR = '__OR__';
