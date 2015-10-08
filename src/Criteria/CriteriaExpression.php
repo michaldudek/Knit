@@ -2,7 +2,7 @@
 namespace Knit\Criteria;
 
 use Knit\Criteria\PropertyValue;
-use Knit\KnitOptions;
+use Knit\Knit;
 
 /**
  * Criteria expression class.
@@ -33,18 +33,18 @@ class CriteriaExpression
      * Constructor.
      *
      * @param array $criteria [optional] Criteria array that will be converted into proper expressions.
-     * @param string $logic [optional] Logic that joins the criteria. One of `KnitOptions::LOGIC_*` constants.
+     * @param string $logic [optional] Logic that joins the criteria. One of `Knit::LOGIC_*` constants.
      */
     public function __construct(array $criteria = [], $logic = null)
     {
         // parse the logic - AND is default and only allow for AND or OR - throw exceptions on anything else
-        $logic = ($logic === null) ? KnitOptions::LOGIC_AND : $logic;
+        $logic = ($logic === null) ? Knit::LOGIC_AND : $logic;
 
-        if ($logic !== KnitOptions::LOGIC_AND && $logic !== KnitOptions::LOGIC_OR) {
+        if ($logic !== Knit::LOGIC_AND && $logic !== Knit::LOGIC_OR) {
             throw new \InvalidArgumentException(
                 sprintf(
-                    'Unrecognized logical operator passed in criteria. You can only use "Knit\KnitOptions::LOGIC_AND"'
-                    .' or "Knit\KnitOptions::LOGIC_OR", "%s" given.',
+                    'Unrecognized logical operator passed in criteria. You can only use "Knit\Knit::LOGIC_AND"'
+                    .' or "Knit\Knit::LOGIC_OR", "%s" given.',
                     $logic
                 )
             );
@@ -55,7 +55,7 @@ class CriteriaExpression
         // now parse the given criteria rows
         foreach ($criteria as $key => $value) {
             // if key is a logical operator then we have a subexpression
-            if ($key === KnitOptions::LOGIC_AND || $key === KnitOptions::LOGIC_OR) {
+            if ($key === Knit::LOGIC_AND || $key === Knit::LOGIC_OR) {
                 $this->criteria[] = new CriteriaExpression($value, $key);
                 continue;
             }

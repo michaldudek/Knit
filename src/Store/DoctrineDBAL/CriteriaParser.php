@@ -8,7 +8,7 @@ use Doctrine\DBAL\Query\QueryBuilder;
 use Knit\Criteria\CriteriaExpression;
 use Knit\Criteria\PropertyValue;
 use Knit\Exceptions\InvalidOperatorException;
-use Knit\KnitOptions;
+use Knit\Knit;
 
 /**
  * Converts Knit's `CriteriaExpression` object into statements on Doctrine's Query Builder.
@@ -93,7 +93,7 @@ class CriteriaParser
         }
 
         // now join all the expressions by the predefined logic
-        $logic = $criteria->getLogic() === KnitOptions::LOGIC_OR ? 'orX' : 'andX';
+        $logic = $criteria->getLogic() === Knit::LOGIC_OR ? 'orX' : 'andX';
         return call_user_func_array([$queryBuilder->expr(), $logic], $expressions);
     }
 

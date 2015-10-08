@@ -3,7 +3,7 @@ namespace Knit\Tests\Criteria;
 
 use Knit\Criteria\CriteriaExpression;
 use Knit\Criteria\PropertyValue;
-use Knit\KnitOptions;
+use Knit\Knit;
 
 /**
  * Tests generating criteria expressions objects from arrays.
@@ -95,7 +95,7 @@ class CriteriaTest extends \PHPUnit_Framework_TestCase
                     'id' => 5
                 ],
                 'expected' => [
-                    'logic' => KnitOptions::LOGIC_AND,
+                    'logic' => Knit::LOGIC_AND,
                     'properties' => [
                         ['property', 'id', PropertyValue::OPERATOR_EQUALS, 5]
                     ]
@@ -107,7 +107,7 @@ class CriteriaTest extends \PHPUnit_Framework_TestCase
                     'deleted:not' => 1
                 ],
                 'expected' => [
-                    'logic' => KnitOptions::LOGIC_AND,
+                    'logic' => Knit::LOGIC_AND,
                     'properties' => [
                         ['property', 'id', PropertyValue::OPERATOR_EQUALS, 5],
                         ['property', 'deleted', PropertyValue::OPERATOR_NOT, 1]
@@ -130,7 +130,7 @@ class CriteriaTest extends \PHPUnit_Framework_TestCase
                     'length:lte' => 23
                 ],
                 'expected' => [
-                    'logic' => KnitOptions::LOGIC_AND,
+                    'logic' => Knit::LOGIC_AND,
                     'properties' => [
                         ['property', 'type', PropertyValue::OPERATOR_EQUALS, 'fellowship_member'],
                         ['property', 'race', PropertyValue::OPERATOR_NOT, 'human'],
@@ -150,17 +150,17 @@ class CriteriaTest extends \PHPUnit_Framework_TestCase
             [ // #3 - nested criteria
                 'criteria' => [
                     'type' => 'fellowship_member',
-                    KnitOptions::LOGIC_OR => [
+                    Knit::LOGIC_OR => [
                         'race' => ['hobbit', 'dwarf'],
                         'height:lte' => 140
                     ]
                 ],
                 'expected' => [
-                    'logic' => KnitOptions::LOGIC_AND,
+                    'logic' => Knit::LOGIC_AND,
                     'properties' => [
                         ['property', 'type', PropertyValue::OPERATOR_EQUALS, 'fellowship_member'],
                         ['criteria', [
-                            'logic' => KnitOptions::LOGIC_OR,
+                            'logic' => Knit::LOGIC_OR,
                             'properties' => [
                                 ['property', 'race', PropertyValue::OPERATOR_IN, ['hobbit', 'dwarf']],
                                 ['property', 'height', PropertyValue::OPERATOR_LOWER_THAN_EQUAL, 140]

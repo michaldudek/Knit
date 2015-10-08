@@ -6,7 +6,7 @@ use MongoId;
 use Knit\Criteria\CriteriaExpression;
 use Knit\Criteria\PropertyValue;
 use Knit\Exceptions\InvalidOperatorException;
-use Knit\KnitOptions;
+use Knit\Knit;
 
 /**
  * Converts Knit's `CriteriaExpression` object into MongoDb's criteria.
@@ -50,7 +50,7 @@ class CriteriaParser
 
         foreach ($criteria->getCriteria() as $criterium) {
             if ($criterium instanceof CriteriaExpression) {
-                $logic = $criterium->getLogic() === KnitOptions::LOGIC_OR ? '$or' : '$and';
+                $logic = $criterium->getLogic() === Knit::LOGIC_OR ? '$or' : '$and';
                 $result[$logic] = $this->parseCriteria($criterium, true);
                 continue;
             }

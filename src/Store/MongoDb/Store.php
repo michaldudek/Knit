@@ -19,7 +19,7 @@ use Knit\Exceptions\StoreConnectionFailedException;
 use Knit\Exceptions\StoreQueryErrorException;
 use Knit\Store\MongoDb\CriteriaParser;
 use Knit\Store\StoreInterface;
-use Knit\KnitOptions;
+use Knit\Knit;
 
 /**
  * MongoDB store implementation.
@@ -419,14 +419,14 @@ class Store implements StoreInterface, LoggerAwareInterface
             foreach ($params['orderBy'] as $property => $orderDir) {
                 if (is_string($orderDir)) {
                     $property = $orderDir;
-                    $orderDir = KnitOptions::ORDER_ASC;
+                    $orderDir = Knit::ORDER_ASC;
                 }
 
-                $orderBy[$property] = $orderDir === KnitOptions::ORDER_DESC ? -1 : 1;
+                $orderBy[$property] = $orderDir === Knit::ORDER_DESC ? -1 : 1;
             }
         } else {
             $orderBy[$params['orderBy']] = isset($params['orderDir'])
-                && $params['orderDir'] === KnitOptions::ORDER_DESC
+                && $params['orderDir'] === Knit::ORDER_DESC
                     ? -1
                     : 1;
         }

@@ -16,7 +16,7 @@ use Knit\Exceptions\StoreConnectionFailedException;
 use Knit\Exceptions\StoreQueryErrorException;
 use Knit\Store\DoctrineDBAL\CriteriaParser;
 use Knit\Store\StoreInterface;
-use Knit\KnitOptions;
+use Knit\Knit;
 
 /**
  * Persistent store based on Doctrine DBAL that supports MySQL, PostgreSQL and more.
@@ -329,14 +329,14 @@ class Store implements StoreInterface, LoggerAwareInterface
             foreach ($params['orderBy'] as $property => $orderDir) {
                 if (is_string($orderDir)) {
                     $property = $orderDir;
-                    $orderDir = KnitOptions::ORDER_ASC;
+                    $orderDir = Knit::ORDER_ASC;
                 }
 
-                $orderBy[$property] = $orderDir === KnitOptions::ORDER_DESC ? 'DESC' : 'ASC';
+                $orderBy[$property] = $orderDir === Knit::ORDER_DESC ? 'DESC' : 'ASC';
             }
         } else {
             $orderBy[$params['orderBy']] = isset($params['orderDir'])
-                && $params['orderDir'] === KnitOptions::ORDER_DESC
+                && $params['orderDir'] === Knit::ORDER_DESC
                     ? 'DESC'
                     : 'ASC';
         }
