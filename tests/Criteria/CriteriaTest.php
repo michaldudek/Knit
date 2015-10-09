@@ -169,6 +169,48 @@ class CriteriaTest extends \PHPUnit_Framework_TestCase
                     ]
                 ]
             ],
+            [ // #4 - nested criteria subset
+                'criteria' => [
+                    'type' => 'fellowship_member',
+                    Knit::LOGIC_OR => [
+                        ['race' => 'hobbit', 'name' => 'Frodo'],
+                        ['race' => 'elf', 'name' => 'Legolas'],
+                        ['race' => 'dwarf', 'name' => 'Gimli']
+                    ]
+                ],
+                'expected' => [
+                    'logic' => Knit::LOGIC_AND,
+                    'properties' => [
+                        ['property', 'type', PropertyValue::OPERATOR_EQUALS, 'fellowship_member'],
+                        ['criteria', [
+                            'logic' => Knit::LOGIC_OR,
+                            'properties' => [
+                                ['criteria', [
+                                    'logic' => Knit::LOGIC_AND,
+                                    'properties' => [
+                                        ['property', 'race', PropertyValue::OPERATOR_EQUALS, 'hobbit'],
+                                        ['property', 'name', PropertyValue::OPERATOR_EQUALS, 'Frodo']
+                                    ]
+                                ]],
+                                ['criteria', [
+                                    'logic' => Knit::LOGIC_AND,
+                                    'properties' => [
+                                        ['property', 'race', PropertyValue::OPERATOR_EQUALS, 'elf'],
+                                        ['property', 'name', PropertyValue::OPERATOR_EQUALS, 'Legolas']
+                                    ]
+                                ]],
+                                ['criteria', [
+                                    'logic' => Knit::LOGIC_AND,
+                                    'properties' => [
+                                        ['property', 'race', PropertyValue::OPERATOR_EQUALS, 'dwarf'],
+                                        ['property', 'name', PropertyValue::OPERATOR_EQUALS, 'Gimli']
+                                    ]
+                                ]],
+                            ]
+                        ]]
+                    ]
+                ]
+            ]
         ];
     }
 }

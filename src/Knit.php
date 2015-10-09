@@ -41,4 +41,9 @@ class Knit
     const EVENT_DID_SAVE = 'knit.did_save';
     const EVENT_WILL_DELETE = 'knit.will_delete';
     const EVENT_DID_DELETE = 'knit.did_delete';
+
+    /**
+     * Property key set on an object that is marked as stored.
+     */
+    const KEY_STORED = '__knitStored';
 }

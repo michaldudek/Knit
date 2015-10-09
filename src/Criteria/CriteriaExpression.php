@@ -60,6 +60,12 @@ class CriteriaExpression
                 continue;
             }
 
+            // if key is numeric then we have a subset
+            if (is_numeric($key)) {
+                $this->criteria[] = new CriteriaExpression($value, Knit::LOGIC_AND);
+                continue;
+            }
+
             $this->criteria[] = new PropertyValue($key, $value);
         }
     }
