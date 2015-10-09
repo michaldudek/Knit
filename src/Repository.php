@@ -4,6 +4,7 @@ namespace Knit;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 use MD\Foundation\Debug\Debugger;
+use MD\Foundation\Utils\ObjectUtils;
 use MD\Foundation\Utils\StringUtils;
 
 use Knit\Criteria\CriteriaExpression;
@@ -362,30 +363,128 @@ class Repository
         $this->eventDispatcher->dispatch(Knit::EVENT_DID_DELETE, new ObjectEvent($object));
     }
 
-    // ???
+    /**
+     * Do a programmatic 1:1 join between the given objects and objects retrieved from the passed repository.
+     *
+     * Example:
+     *
+     *      $productRepository->joinOne($products, $categoryRepository, 'category_id', 'id', 'category');
+     *
+     * The above code will query `$categoryRepository` for all categories with `id`'s found in `category_id` properties
+     * of the `$products`. Then it will match `$products` and the fetched categories and call `::setCategory()` on each
+     * product with the related category.
+     *
+     * @param array      $objects        Objects to which associated objects will be joined.
+     * @param Repository $withRepository Repository from which associated objects should be fetched.
+     * @param string     $leftProperty   Property of `$objects` under which the relation is stored.
+     * @param string     $rightProperty  Property on which the fetched objects can be identified.
+     * @param string     $targetProperty Property of `$objects` on which the associated object will be set. This is
+     *                                   converted to a camelCase setter.
+     * @param array      $criteria       [optional] Any additional criteria for finding the associated objects.
+     * @param boolean    $excludeEmpty   [optional] Should objects that didn't find the match be removed
+     *                                   from the results set? Set as `Knit::EXCLUDE_EMPTY` constant. Default: `false`.
+     *
+     * @return array
+     */
     public function joinOne(
         array $objects,
-        Repository $joinRepository,
-        $joinProperty,
-        $matchProperty,
+        Repository $withRepository,
+        $leftProperty,
+        $rightProperty,
         $targetProperty,
         array $criteria = [],
         $excludeEmpty = false
     ) {
+        // if empty collection then don't even waste time :)
+        if (empty($objects)) {
+            return $objects;
+        }
 
+        // select all objects for the right side of the join
+        $criteria = array_merge($criteria, [
+            $rightProperty => ObjectUtils::pluck($objects, $leftProperty)
+        ]);
+        $withObjects = $withRepository->find($criteria);
+        $withObjects = ObjectUtils::indexBy($withObjects, $rightProperty);
+
+        // do the programmatic join
+        $getter = ObjectUtils::getter($leftProperty);
+        $setter = ObjectUtils::setter($targetProperty);
+
+        foreach ($objects as $i => $object) {
+            $match = $object->{$getter}();
+
+            if (isset($withObjects[$match])) {
+                $object->{$setter}($withObjects[$match]);
+            } elseif ($excludeEmpty === Knit::EXCLUDE_EMPTY) {
+                unset($objects[$i]);
+            }
+        }
+
+        return array_values($objects);
     }
 
+    /**
+     * Do a programmatic 1:n join between the given objects and objects retrieved from the passed repository.
+     *
+     * Example:
+     *
+     *      $productRepository->joinMany($products, $tagsRepository, 'id', 'product_id', 'tags');
+     *
+     * The above code will query `$tagsRepository` for all tags that have `id`'s of the `$products` in `product_id`
+     * property. Then it will match `$products` and the fetched tags and set all related tags on each product by
+     * calling `::setTags()` with the related tags.
+     *
+     * @param array      $objects        Objects to which associated objects will be joined.
+     * @param Repository $withRepository Repository from which associated objects should be fetched.
+     * @param string     $leftProperty   Property of `$objects` under which the relation is stored.
+     * @param string     $rightProperty  Property on which the fetched objects can be identified.
+     * @param string     $targetProperty Property of `$objects` on which the associated object will be set. This is
+     *                                   converted to a camelCase setter.
+     * @param array      $criteria       [optional] Any additional criteria for finding the associated objects.
+     * @param array      $params         [optional] Any additional search parameters for finding the associated objects.
+     * @param boolean    $excludeEmpty   [optional] Should objects that didn't find the match be removed
+     *                                   from the results set? Set as `Knit::EXCLUDE_EMPTY` constant. Default: `false`.
+     *
+     * @return array
+     */
     public function joinMany(
         array $objects,
-        Repository $joinRepository,
-        $joinProperty,
-        $matchProperty,
+        Repository $withRepository,
+        $leftProperty,
+        $rightProperty,
         $targetProperty,
         array $criteria = [],
         array $params = [],
         $excludeEmpty = false
     ) {
+        // if empty collection then don't even waste time :)
+        if (empty($objects)) {
+            return $objects;
+        }
 
+        // select all objects for the right side of the join
+        $criteria = array_merge($criteria, [
+            $rightProperty => ObjectUtils::pluck($objects, $leftProperty)
+        ]);
+        $withObjects = $withRepository->find($criteria, $params);
+        $withObjects = ObjectUtils::groupBy($withObjects, $rightProperty);
+
+        // do the programmatic join
+        $getter = ObjectUtils::getter($leftProperty);
+        $setter = ObjectUtils::setter($targetProperty);
+
+        foreach ($objects as $i => $object) {
+            $match = $object->{$getter}();
+
+            if (isset($withObjects[$match])) {
+                $object->{$setter}($withObjects[$match]);
+            } elseif ($excludeEmpty === Knit::EXCLUDE_EMPTY) {
+                unset($objects[$i]);
+            }
+        }
+
+        return array_values($objects);
     }
 
     /**

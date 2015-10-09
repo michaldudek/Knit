@@ -26,7 +26,7 @@ class Knit
     /**
      * Join options.
      */
-    const EXCLUDE_EMPTY = '__EXCLUDE_EMPTY__';
+    const EXCLUDE_EMPTY = true;
 
     /**
      * Event names.

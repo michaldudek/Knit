@@ -1,6 +1,7 @@
 <?php
 namespace Knit\Tests;
 
+use MD\Foundation\Utils\ObjectUtils;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Knit\Criteria\CriteriaExpression;
@@ -1069,6 +1070,300 @@ class RepositoryTest extends \PHPUnit_Framework_TestCase
         $repository = $this->provideRepository($mocks);
 
         $repository->delete($this->provideHobbit(['name' => 'Frodo']));
+    }
+
+    /**
+     * Provides data for `::testJoinOne()`
+     *
+     * @return array
+     */
+    public function provideJoinOneData()
+    {
+        $map = [
+            'Frodo' => 'Light of Earendil',
+            'Sam' => 'Mallorn Seed',
+            'Merry' => 'Silver Belt',
+            'Pippin' => 'Silver Dagger'
+        ];
+
+        // hobbits generator because they need to be unique for every dataset
+        $generateHobbits = function () use ($map) {
+            $hobbits = [];
+            foreach (array_keys($map) as $hobbitName) {
+                $hobbit = new Fixtures\Hobbit();
+                $hobbit->setName($hobbitName);
+                $hobbits[$hobbitName] = $hobbit;
+            }
+            return $hobbits;
+        };
+
+        $gifts = [];
+        foreach ($map as $hobbitName => $giftName) {
+            $gift = new Fixtures\ElvenGift($giftName, $hobbitName);
+            $gifts[$giftName] = $gift;
+        }
+
+        return [
+            [ // #0 - empty
+                'objects' => [],
+                'criteria' => [],
+                'withObjects' => [],
+                'excludeEmpty' => false,
+                'expected' => []
+            ],
+            [ // #1 - everything filled
+                'objects' => $generateHobbits(),
+                'criteria' => [],
+                'withObjects' => $gifts,
+                'excludeEmpty' => false,
+                'expected' => [
+                    'Frodo' => 'Light of Earendil',
+                    'Sam' => 'Mallorn Seed',
+                    'Merry' => 'Silver Belt',
+                    'Pippin' => 'Silver Dagger'
+                ]
+            ],
+            [ // #2 - additional criteria
+                'objects' => $generateHobbits(),
+                'criteria' => ['version' => 'book'],
+                'withObjects' => [
+                    $gifts['Light of Earendil'],
+                    $gifts['Mallorn Seed'],
+                    $gifts['Silver Belt']
+                ],
+                'excludeEmpty' => false,
+                'expected' => [
+                    'Frodo' => 'Light of Earendil',
+                    'Sam' => 'Mallorn Seed',
+                    'Merry' => 'Silver Belt',
+                    'Pippin' => null
+                ]
+            ],
+            [ // #3 - exclude empty
+                'objects' => $generateHobbits(),
+                'criteria' => ['version' => 'movie'],
+                'withObjects' => [
+                    $gifts['Light of Earendil'],
+                    $gifts['Mallorn Seed'],
+                    $gifts['Silver Dagger']
+                ],
+                'excludeEmpty' => Knit::EXCLUDE_EMPTY,
+                'expected' => [
+                    'Frodo' => 'Light of Earendil',
+                    'Sam' => 'Mallorn Seed',
+                    'Pippin' => 'Silver Dagger'
+                ]
+            ],
+        ];
+    }
+
+    /**
+     * Tests joining single items to a collection of objects.
+     *
+     * @param array   $objects      Objects.
+     * @param array   $criteria     Search criteria.
+     * @param array   $withObjects  Search results from the other repository.
+     * @param boolean $excludeEmpty Exclude empty?
+     * @param array   $expected     Expected result.
+     *
+     * @dataProvider provideJoinOneData
+     */
+    public function testJoinOne(array $objects, array $criteria, array $withObjects, $excludeEmpty, array $expected)
+    {
+        $hobbitMocks = $this->provideMocks();
+        $hobbitRepository = $this->provideRepository($hobbitMocks);
+
+        $giftMocks = $this->provideMocks();
+        $giftMocks['objectClass'] = Fixtures\ElvenGift::class;
+        $giftRepository = $this->provideRepositoryStub($giftMocks, ['find']);
+
+        if (!empty($objects)) {
+            $giftRepository->expects($this->once())
+                ->method('find')
+                ->with(array_merge($criteria, ['owner_name' => ObjectUtils::pluck($objects, 'name')]))
+                ->will($this->returnValue($withObjects));
+        } else {
+            $giftRepository->expects($this->never())
+                ->method('find');
+        }
+
+        $result = $hobbitRepository->joinOne(
+            $objects,
+            $giftRepository,
+            'name',
+            'owner_name',
+            'gift',
+            $criteria,
+            $excludeEmpty
+        );
+
+        $this->assertInternalType('array', $result);
+        $this->assertCount(count($expected), $result);
+
+        foreach ($result as $hobbit) {
+            $gift = $hobbit->getGift();
+            $name = $gift === null ? null : $gift->getName();
+            $this->assertEquals($expected[$hobbit->getName()], $name);
+        }
+    }
+
+    /**
+     * Provides data for `::testJoinMany()`
+     *
+     * @return array
+     */
+    public function provideJoinManyData()
+    {
+        $map = [
+            'Frodo' => ['Light', 'Liquid', 'Bottle'],
+            'Sam' => ['Mallorn Seed', 'Earth', 'Rope'],
+            'Merry' => ['Silver Dagger (M)', 'Silver Belt (M)'],
+            'Pippin' => ['Silver Dagger (P)', 'Silver Belt (P)']
+        ];
+
+        // hobbits generator because they need to be unique for every dataset
+        $generateHobbits = function () use ($map) {
+            $hobbits = [];
+            foreach (array_keys($map) as $hobbitName) {
+                $hobbit = new Fixtures\Hobbit();
+                $hobbit->setName($hobbitName);
+                $hobbits[$hobbitName] = $hobbit;
+            }
+            return $hobbits;
+        };
+
+        $gifts = [];
+        foreach ($map as $hobbitName => $hobbitGifts) {
+            foreach ($hobbitGifts as $giftName) {
+                $gift = new Fixtures\ElvenGift($giftName, $hobbitName);
+                $gifts[$giftName] = $gift;
+            }
+        }
+
+        return [
+            [ // #0 - empty
+                'objects' => [],
+                'criteria' => [],
+                'params' => [],
+                'withObjects' => [],
+                'excludeEmpty' => false,
+                'expected' => []
+            ],
+            [ // #1 - everything filled
+                'objects' => $generateHobbits(),
+                'criteria' => [],
+                'params' => [],
+                'withObjects' => $gifts,
+                'excludeEmpty' => false,
+                'expected' => [
+                    'Frodo' => ['Light', 'Liquid', 'Bottle'],
+                    'Sam' => ['Mallorn Seed', 'Earth', 'Rope'],
+                    'Merry' => ['Silver Dagger (M)', 'Silver Belt (M)'],
+                    'Pippin' => ['Silver Dagger (P)', 'Silver Belt (P)']
+                ]
+            ],
+            [ // #2 - additional criteria
+                'objects' => $generateHobbits(),
+                'criteria' => ['version' => 'book'],
+                'params' => [],
+                'withObjects' => [
+                    $gifts['Light'],
+                    $gifts['Liquid'],
+                    $gifts['Bottle'],
+                    $gifts['Mallorn Seed'],
+                    $gifts['Earth'],
+                    $gifts['Silver Belt (M)'],
+                    $gifts['Silver Belt (P)']
+                ],
+                'excludeEmpty' => false,
+                'expected' => [
+                    'Frodo' => ['Light', 'Liquid', 'Bottle'],
+                    'Sam' => ['Mallorn Seed', 'Earth'],
+                    'Merry' => ['Silver Belt (M)'],
+                    'Pippin' => ['Silver Belt (P)']
+                ]
+            ],
+            [ // #3 - exclude empty
+                'objects' => $generateHobbits(),
+                'criteria' => ['version' => 'movie'],
+                'params' => ['orderBy' => 'name', 'orderDir' => Knit::ORDER_DESC],
+                'withObjects' => [
+                    $gifts['Light'],
+                    $gifts['Liquid'],
+                    $gifts['Silver Dagger (M)'],
+                    $gifts['Silver Dagger (P)']
+                ],
+                'excludeEmpty' => Knit::EXCLUDE_EMPTY,
+                'expected' => [
+                    'Frodo' => ['Light', 'Liquid'],
+                    'Merry' => ['Silver Dagger (M)'],
+                    'Pippin' => ['Silver Dagger (P)']
+                ]
+            ],
+        ];
+    }
+
+    /**
+     * Tests joining many items to a collection of objects.
+     *
+     * @param array   $objects      Objects.
+     * @param array   $criteria     Search criteria.
+     * @param array   $params       Search params.
+     * @param array   $withObjects  Search results from the other repository.
+     * @param boolean $excludeEmpty Exclude empty?
+     * @param array   $expected     Expected result.
+     *
+     * @dataProvider provideJoinManyData
+     */
+    public function testJoinMany(
+        array $objects,
+        array $criteria,
+        array $params,
+        array $withObjects,
+        $excludeEmpty,
+        array $expected
+    ) {
+        $hobbitMocks = $this->provideMocks();
+        $hobbitRepository = $this->provideRepository($hobbitMocks);
+
+        $giftMocks = $this->provideMocks();
+        $giftMocks['objectClass'] = Fixtures\ElvenGift::class;
+        $giftRepository = $this->provideRepositoryStub($giftMocks, ['find']);
+
+        if (!empty($objects)) {
+            $giftRepository->expects($this->once())
+                ->method('find')
+                ->with(array_merge($criteria, ['owner_name' => ObjectUtils::pluck($objects, 'name')]), $params)
+                ->will($this->returnValue($withObjects));
+        } else {
+            $giftRepository->expects($this->never())
+                ->method('find');
+        }
+
+        $result = $hobbitRepository->joinMany(
+            $objects,
+            $giftRepository,
+            'name',
+            'owner_name',
+            'gifts',
+            $criteria,
+            $params,
+            $excludeEmpty
+        );
+
+        $this->assertInternalType('array', $result);
+        $this->assertCount(count($expected), $result);
+
+        foreach ($result as $hobbit) {
+            $gifts = $hobbit->getGifts();
+            $expectedGifts = $expected[$hobbit->getName()];
+
+            $this->assertCount(count($expectedGifts), $gifts);
+
+            foreach ($gifts as $i => $gift) {
+                $this->assertEquals($expectedGifts[$i], $gift->getName());
+            }
+        }
     }
 
     /**

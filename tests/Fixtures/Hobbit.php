@@ -3,6 +3,8 @@ namespace Knit\Tests\Fixtures;
 
 use Knit\DataMapper\ArraySerializable\ArraySerializableInterface;
 
+use Knit\Tests\Fixtures\ElvenGift;
+
 /**
  * Fixture class.
  *
@@ -41,6 +43,20 @@ class Hobbit implements ArraySerializableInterface
      * @var string
      */
     protected $surname;
+
+    /**
+     * Gift.
+     *
+     * @var ElvenGift
+     */
+    protected $gift;
+
+    /**
+     * Gifts.
+     *
+     * @var array
+     */
+    protected $gifts = [];
 
     /**
      * Sets ID.
@@ -120,6 +136,46 @@ class Hobbit implements ArraySerializableInterface
     public function getSurname()
     {
         return $this->surname;
+    }
+
+    /**
+     * Sets the gift.
+     *
+     * @param ElvenGift $gift Gift.
+     */
+    public function setGift(ElvenGift $gift)
+    {
+        $this->gift = $gift;
+    }
+
+    /**
+     * Gets the gift.
+     *
+     * @return ElvenGift
+     */
+    public function getGift()
+    {
+        return $this->gift;
+    }
+
+    /**
+     * Sets the gifts.
+     *
+     * @param array $gifts Gifts.
+     */
+    public function setGifts(array $gifts)
+    {
+        $this->gifts = $gifts;
+    }
+
+    /**
+     * Gets the gifts.
+     *
+     * @return array
+     */
+    public function getGifts()
+    {
+        return $this->gifts;
     }
 
     /**
