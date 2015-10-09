@@ -22,6 +22,9 @@ use Knit\Repository;
  * @license    https://github.com/michaldudek/Knit/blob/master/LICENSE.md MIT License
  *
  * @covers Knit\Repository
+ * @covers Knit\Events\CriteriaEvent
+ * @covers Knit\Events\ObjectEvent
+ * @covers Knit\Events\ResultsEvent
  */
 class RepositoryTest extends \PHPUnit_Framework_TestCase
 {
