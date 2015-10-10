@@ -127,23 +127,25 @@ class CriteriaTest extends \PHPUnit_Framework_TestCase
                     'age:gt' => 50,
                     'height:gte' => 160,
                     'size:lt' => 15,
-                    'length:lte' => 23
+                    'length:lte' => 23,
+                    'size:exists' => true,
                 ],
                 'expected' => [
                     'logic' => Knit::LOGIC_AND,
                     'properties' => [
                         ['property', 'type', PropertyValue::OPERATOR_EQUALS, 'fellowship_member'],
                         ['property', 'race', PropertyValue::OPERATOR_NOT, 'human'],
-                        ['property', 'name', PropertyValue::OPERATOR_NOT_IN, ['Dumbledore', 'Harry']],
+                        ['property', 'name', PropertyValue::OPERATOR_NOT, ['Dumbledore', 'Harry']],
                         ['property', 'name', PropertyValue::OPERATOR_IN, ['Frodo', 'Sam', 'Pippin', 'Merry']],
-                        ['property', 'name', PropertyValue::OPERATOR_IN, ['Gandalf', 'Gimli', 'Legolas', 'Aragorn']],
+                        ['property', 'name', PropertyValue::OPERATOR_EQUALS, ['Gandalf','Gimli','Legolas','Aragorn']],
                         ['property', 'name', PropertyValue::OPERATOR_NOT_IN, ['Hermione', 'Ron']],
                         ['property', 'name', PropertyValue::OPERATOR_LIKE, '%Baggins%'],
                         ['property', 'name', PropertyValue::OPERATOR_NOT_LIKE, '%Sackville-%'],
                         ['property', 'age', PropertyValue::OPERATOR_GREATER_THAN, 50],
                         ['property', 'height', PropertyValue::OPERATOR_GREATER_THAN_EQUAL, 160],
                         ['property', 'size', PropertyValue::OPERATOR_LOWER_THAN, 15],
-                        ['property', 'length', PropertyValue::OPERATOR_LOWER_THAN_EQUAL, 23]
+                        ['property', 'length', PropertyValue::OPERATOR_LOWER_THAN_EQUAL, 23],
+                        ['property', 'size', PropertyValue::OPERATOR_EXISTS, true]
                     ]
                 ]
             ],
@@ -162,7 +164,7 @@ class CriteriaTest extends \PHPUnit_Framework_TestCase
                         ['criteria', [
                             'logic' => Knit::LOGIC_OR,
                             'properties' => [
-                                ['property', 'race', PropertyValue::OPERATOR_IN, ['hobbit', 'dwarf']],
+                                ['property', 'race', PropertyValue::OPERATOR_EQUALS, ['hobbit', 'dwarf']],
                                 ['property', 'height', PropertyValue::OPERATOR_LOWER_THAN_EQUAL, 140]
                             ]
                         ]]

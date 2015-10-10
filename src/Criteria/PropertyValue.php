@@ -29,6 +29,7 @@ class PropertyValue
     const OPERATOR_LOWER_THAN_EQUAL = '__LOWER_THAN_EQUAL__';
     const OPERATOR_LIKE = '__LIKE__';
     const OPERATOR_NOT_LIKE = '__NOT_LIKE__';
+    const OPERATOR_EXISTS = '__EXISTS__';
 
     /**
      * Property name.
@@ -95,12 +96,6 @@ class PropertyValue
      */
     protected function eqOperator($value)
     {
-        // if array passed then redirect to IN operator
-        if (is_array($value)) {
-            $this->inOperator($value);
-            return;
-        }
-
         $this->operator = self::OPERATOR_EQUALS;
         $this->value = $value;
     }
@@ -112,12 +107,6 @@ class PropertyValue
      */
     protected function notOperator($value)
     {
-        // if array passed then redirect to NOT IN operator
-        if (is_array($value)) {
-            $this->notInOperator($value);
-            return;
-        }
-
         $this->operator = self::OPERATOR_NOT;
         $this->value = $value;
     }
@@ -207,6 +196,17 @@ class PropertyValue
     protected function notLikeOperator($value)
     {
         $this->operator = self::OPERATOR_NOT_LIKE;
+        $this->value = $value;
+    }
+
+    /**
+     * Handles EXISTS operator.
+     *
+     * @param string $value Criteria value.
+     */
+    protected function existsOperator($value)
+    {
+        $this->operator = self::OPERATOR_EXISTS;
         $this->value = $value;
     }
 

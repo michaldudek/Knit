@@ -63,7 +63,7 @@ class CriteriaParser
      */
     public function parse(QueryBuilder $queryBuilder, CriteriaExpression $criteria = null)
     {
-        if (!$criteria) {
+        if (!$criteria || count($criteria->getCriteria()) === 0) {
             return $queryBuilder;
         }
 
@@ -212,10 +212,10 @@ class CriteriaParser
     {
         // if empty IN just return 0 (serving as FALSE) to never match
         if (empty($value)) {
-            return '0';
+            return 'FALSE';
         }
 
-        return $this->expr($queryBuilder, 'in', $property, implode(', ', $value));
+        return $queryBuilder->expr()->in($property, $this->createInValue($value));
     }
 
     /**
@@ -231,10 +231,10 @@ class CriteriaParser
     {
         // if empty NOT IN just return 1 (serving as TRUE) to always match
         if (empty($value)) {
-            return '1';
+            return 'TRUE';
         }
 
-        return $this->expr($queryBuilder, 'notIn', $property, implode(', ', $value));
+        return $queryBuilder->expr()->notIn($property, $this->createInValue($value));
     }
 
     /**
@@ -332,5 +332,21 @@ class CriteriaParser
     {
         $number = self::$boundCounter++;
         return self::PARAM_PREFIX . $name . $number;
+    }
+
+    /**
+     * Creates a string to put inside IN () statement.
+     *
+     * @param array $values Values.
+     *
+     * @return string
+     */
+    private function createInValue(array $values)
+    {
+        $items = [];
+        foreach ($values as $value) {
+            $items[] = is_int($value) ? $value : "'". $value ."'";
+        }
+        return implode(',', $items);
     }
 }

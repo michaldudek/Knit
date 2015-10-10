@@ -12,6 +12,7 @@ use Doctrine\DBAL\DriverManager;
 
 use MD\Foundation\Debug\Timer;
 
+use Knit\Criteria\CriteriaExpression;
 use Knit\Exceptions\StoreConnectionFailedException;
 use Knit\Exceptions\StoreQueryErrorException;
 use Knit\Store\DoctrineDBAL\CriteriaParser;
@@ -62,6 +63,7 @@ class Store implements StoreInterface, LoggerAwareInterface
     {
         try {
             $this->connection = DriverManager::getConnection($config, new Configuration());
+            $this->connection->connect();
         } catch (\Exception $e) {
             throw new StoreConnectionFailedException('DoctrineDBAL: '. $e->getMessage(), $e->getCode(), $e);
         }
@@ -143,11 +145,28 @@ class Store implements StoreInterface, LoggerAwareInterface
     {
         $timer = new Timer();
 
-        $queryBuilder = $this->connection->createQueryBuilder()
-            ->select('COUNT(*)')
+        // first create a normal SELECT query to apply any filters
+        $filterQueryBuilder = $this->connection->createQueryBuilder()
+            ->select('*')
             ->from($collection);
 
-        $this->criteriaParser->parse($queryBuilder, $criteria);
+        $this->criteriaParser->parse($filterQueryBuilder, $criteria);
+
+        // add offset and limit
+        if (isset($params['start'])) {
+            $filterQueryBuilder->setFirstResult(intval($params['start']));
+        }
+
+        if (isset($params['limit'])) {
+            $filterQueryBuilder->setMaxResults(intval($params['limit']));
+        }
+
+        // and then merge it into the parent query
+        $queryBuilder = $this->connection->createQueryBuilder()
+            ->select('COUNT(*)')
+            ->from('('. $filterQueryBuilder->getSQL() .')', 'a');
+
+        $queryBuilder->setParameters($filterQueryBuilder->getParameters());
 
         $sql = $queryBuilder->getSQL();
         $sqlParams = $queryBuilder->getParameters();
@@ -155,7 +174,7 @@ class Store implements StoreInterface, LoggerAwareInterface
         // execute the query
         try {
             $results = $queryBuilder->execute()->fetch();
-            $result = array_values($results[0]);
+            $result = current(array_values($results));
         } catch (\Exception $e) {
             $this->log($sql, $sqlParams, [], 'error');
             throw new StoreQueryErrorException('DoctrineDBAL: '. $e->getMessage(), $e->getCode(), $e);
@@ -201,18 +220,6 @@ class Store implements StoreInterface, LoggerAwareInterface
         try {
             $result = $queryBuilder->execute();
             $lastInsertId = $this->connection->lastInsertId();
-
-            // $result should contain a number of affected rows
-            // so if its 0 then it means that insert failed
-            if ($result === 0) {
-                throw new \RuntimeException(
-                    sprintf(
-                        'Insert failed for query "%s" and parameters %s',
-                        $sql,
-                        json_encode($sqlParams)
-                    )
-                );
-            }
         } catch (\Exception $e) {
             $this->log($sql, $sqlParams, [], 'error');
             throw new StoreQueryErrorException('DoctrineDBAL: '. $e->getMessage(), $e->getCode(), $e);
@@ -270,7 +277,7 @@ class Store implements StoreInterface, LoggerAwareInterface
     {
         $timer = new Timer();
 
-        $queryBuilder = $this->createQueryBuilder()
+        $queryBuilder = $this->connection->createQueryBuilder()
             ->delete($collection);
 
         $this->criteriaParser->parse($queryBuilder, $criteria);

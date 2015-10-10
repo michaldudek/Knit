@@ -2,6 +2,7 @@ composer.lock
 phpunit.xml
 /vendor
 /resources/coverage
+/resources/tests/.vagrant
 
 /src-old
 /tests-old
