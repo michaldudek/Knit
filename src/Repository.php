@@ -80,7 +80,7 @@ class Repository
         EventDispatcherInterface $eventDispatcher
     ) {
         // normalize the class to be sure its prefixed with namespace separator
-        $objectClass = '\\'. ltrim($objectClass, '\\');
+        $objectClass = ltrim($objectClass, '\\');
 
         if (!class_exists($objectClass)) {
             throw new \InvalidArgumentException(sprintf(
@@ -554,7 +554,7 @@ class Repository
      */
     protected function checkObjectOwnership($object)
     {
-        $class = '\\'. ltrim(get_class($object), '\\');
+        $class = ltrim(get_class($object), '\\');
         if ($class !== $this->objectClass) {
             throw new \LogicException(sprintf(
                 'Cannot use %s repository to manage objects of class %s',

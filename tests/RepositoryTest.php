@@ -36,7 +36,7 @@ class RepositoryTest extends \PHPUnit_Framework_TestCase
         $mocks = $this->provideMocks();
         $repository = $this->provideRepository($mocks);
 
-        $this->assertEquals('\\'. $mocks['objectClass'], $repository->getObjectClass());
+        $this->assertEquals($mocks['objectClass'], $repository->getObjectClass());
         $this->assertEquals($mocks['collection'], $repository->getCollection());
         $this->assertSame($mocks['store'], $repository->getStore());
         $this->assertSame($mocks['dataMapper'], $repository->getDataMapper());
