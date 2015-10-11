@@ -10,13 +10,13 @@ use Knit\Tests\Fixtures;
 use Knit\Criteria\CriteriaExpression;
 use Knit\DataMapper\ArraySerializable\ArraySerializer;
 use Knit\Exceptions\StoreConnectionFailedException;
-use Knit\Store\DoctrineDBAL\CriteriaParser;
-use Knit\Store\DoctrineDBAL\Store;
+use Knit\Store\MongoDb\CriteriaParser;
+use Knit\Store\MongoDb\Store;
 use Knit\Repository;
 use Knit\Knit;
 
 /**
- * Tests DoctrineDBAL store.
+ * Tests MongoDb store.
  *
  * @package    Knit
  * @subpackage Store
@@ -24,7 +24,7 @@ use Knit\Knit;
  * @copyright  2015 Michał Pałys-Dudek
  * @license    https://github.com/michaldudek/Knit/blob/master/LICENSE.md MIT License
  */
-class DoctrineDBALTest extends \PHPUnit_Framework_TestCase
+class MongoDbTest extends \PHPUnit_Framework_TestCase
 {
     /**
      * Repository used for the test.
@@ -45,22 +45,21 @@ class DoctrineDBALTest extends \PHPUnit_Framework_TestCase
      */
     public function setUp()
     {
-        // DB=mysql in travis
-        // MYSQL=1 in the test Vagrant VM
-        if (getenv('DB') !== 'mysql' && getenv('MYSQL') != '1') {
-            $this->markTestSkipped('Not testing MySQL.');
+        // DB=mongodb in travis
+        // MONGODB=1 in the test Vagrant VM
+        if (getenv('DB') !== 'mongodb' && getenv('MONGODB') != '1') {
+            $this->markTestSkipped('Not testing MongoDB.');
         }
 
         try {
             $this->logger = new Fixtures\TestLogger();
 
             $store = new Store([
-                'driver' => 'pdo_mysql',
-                'user' => getenv('MYSQL_USER'),
-                'password' => getenv('MYSQL_PASSWORD'),
-                'host' => getenv('MYSQL_HOST'),
-                'port' => getenv('MYSQL_PORT'),
-                'dbname' => getenv('MYSQL_DBNAME')
+                'username' => getenv('MONGODB_USER'),
+                'password' => getenv('MONGODB_PASSWORD'),
+                'hostname' => getenv('MONGODB_HOST'),
+                'port' => getenv('MONGODB_PORT'),
+                'database' => getenv('MONGODB_DBNAME'),
             ], new CriteriaParser(), $this->logger);
 
             $this->repository = new Repository(
@@ -72,7 +71,7 @@ class DoctrineDBALTest extends \PHPUnit_Framework_TestCase
             );
 
         } catch (StoreConnectionFailedException $e) {
-            $this->markTestSkipped('Could not connect to MySQL: '. $e->getMessage());
+            $this->markTestSkipped('Could not connect to MongoDB: '. $e->getMessage());
         }
     }
 
@@ -84,22 +83,37 @@ class DoctrineDBALTest extends \PHPUnit_Framework_TestCase
     public function testConnectionError()
     {
         new Store([
-            'driver' => 'pdo_mysql',
-            'user' => 'unknown',
+            'username' => 'unknown',
             'password' => 'notsosecret',
-            'host' => '127.0.1.1'
+            'hostname' => '127.0.1.1',
+            'database' => 'nothing'
         ], new CriteriaParser());
     }
 
     /**
-     * Tests the connection and also prepares the schema for tests.
+     * Tests throwing a proper exception when the config was wrong.
+     *
+     * @expectedException \InvalidArgumentException
+     */
+    public function testConfigError()
+    {
+        new Store([
+            'username' => 'unknown',
+            'password' => 'notsosecret',
+            'hostname' => '127.0.1.1'
+        ], new CriteriaParser());
+    }
+
+    /**
+     * Tests the connection and clears the database for preparation for tests.
      */
     public function testConnection()
     {
-        $connection = $this->repository->getStore()->getConnection();
+        $store = $this->repository->getStore();
+        $store->getDatabase()
+            ->dropCollection($this->repository->getCollection());
 
-        $sql = file_get_contents(__DIR__ .'/../../resources/tests/knit_test.sql');
-        $connection->query($sql);
+        $this->assertInstanceOf(\MongoClient::class, $store->getClient());
     }
 
     /**
@@ -131,10 +145,16 @@ class DoctrineDBALTest extends \PHPUnit_Framework_TestCase
      */
     public function testInsertError()
     {
-        $this->repository->getStore()->add(
-            $this->repository->getCollection(),
-            ['no_such_column' => 1]
-        );
+        // it looks like the best way to test this is an actual unit test with a mock
+        $store = $this->provideStore();
+
+        $store->getDatabase()
+            ->hobbits
+            ->expects($this->once())
+                ->method('insert')
+                ->will($this->throwException(new \MongoException()));
+
+        $store->add('hobbits', []);
     }
 
     /**
@@ -161,7 +181,7 @@ class DoctrineDBALTest extends \PHPUnit_Framework_TestCase
                 'expected' => ['Pippin', 'Merry', 'Sam']
             ],
             [ // #3
-                'criteria' => ['name' => ['Frodo', 'Sam'], 'height:gt' => 135],
+                'criteria' => ['name:in' => ['Frodo', 'Sam'], 'height:gt' => 135],
                 'params' => [],
                 'expected' => ['Frodo']
             ],
@@ -187,7 +207,7 @@ class DoctrineDBALTest extends \PHPUnit_Framework_TestCase
             ],
             [ // #8
                 'criteria' => [
-                    Knit::LOGIC_OR => ['height:lt' => 142, 'surname:like' => '%oo%']
+                    Knit::LOGIC_OR => ['height:lt' => 142, 'surname' => 'Took']
                 ],
                 'params' => [],
                 'expected' => ['Frodo', 'Sam', 'Merry', 'Pippin']
@@ -205,7 +225,7 @@ class DoctrineDBALTest extends \PHPUnit_Framework_TestCase
                 'expected' => ['Frodo', 'Merry']
             ],
             [ // #10
-                'criteria' => ['name:not' => ['Sam', 'Merry']],
+                'criteria' => ['name:not_in' => ['Sam', 'Merry']],
                 'params' => [],
                 'expected' => ['Frodo', 'Pippin']
             ],
@@ -220,14 +240,54 @@ class DoctrineDBALTest extends \PHPUnit_Framework_TestCase
                 'expected' => ['Frodo', 'Sam', 'Merry', 'Pippin']
             ],
             [ // #13
-                'criteria' => ['name:not_like' => '%r%'],
-                'params' => [],
-                'expected' => ['Sam', 'Pippin']
-            ],
-            [ // #14
                 'criteria' => [],
                 'params' => ['orderBy' => ['name', 'height']],
                 'expected' => ['Frodo', 'Merry', 'Pippin', 'Sam']
+            ],
+            [ // #14
+                'criteria' => [
+                    Knit::LOGIC_OR => ['height:lt' => 142, 'surname:like' => '%oo%']
+                ],
+                'params' => [],
+                'expected' => ['Frodo', 'Sam', 'Merry', 'Pippin']
+            ],
+            [ // #15
+                'criteria' => ['name:in' => ['Sam', 'Pippin']],
+                'params' => [],
+                'expected' => ['Sam', 'Pippin']
+            ],
+            [ // #16
+                'criteria' => ['name:in' => []],
+                'params' => [],
+                'expected' => []
+            ],
+            [ // #17
+                'criteria' => ['name:not_in' => []],
+                'params' => [],
+                'expected' => ['Frodo', 'Sam', 'Merry', 'Pippin']
+            ],
+            [ // #18
+                'criteria' => ['name:regex' => '/rr/si'],
+                'params' => [],
+                'expected' => ['Merry']
+            ],
+            [ // #19
+                'criteria' => ['name:like' => '%oo\%'],
+                'params' => [],
+                'expected' => []
+            ],
+            [ // #20
+                'criteria' => ['name' => 'Frodo', 'name:eq' => 'Sam'],
+                'params' => [],
+                'expected' => []
+            ],
+            [ // #21
+                'criteria' => [
+                    Knit::LOGIC_OR => ['height:lt' => 142, 'surname:like' => '%oo%'],
+                    Knit::LOGIC_AND => ['height:gte' => 100, 'name' => 'Frodo']
+                ],
+                'params' => [],
+                'expected' => ['Frodo']
             ],
         ];
     }
@@ -240,10 +300,49 @@ class DoctrineDBALTest extends \PHPUnit_Framework_TestCase
      */
     public function testFind(array $criteria, array $params, array $expected)
     {
-        $hobbits = $this->repository->find($criteria, $params);
+        try {
+            $hobbits = $this->repository->find($criteria, $params);
+        } catch (\Exception $e) {
+            throw new \Exception($this->logger->getLastMessage(), 0, $e);
+        }
 
         $this->assertCount(count($expected), $hobbits, $this->logger->getLastMessage());
         $this->assertEquals($expected, ObjectUtils::pluck($hobbits, 'name'), $this->logger->getLastMessage());
+    }
+
+    /**
+     * Tests finding by multiple id's.
+     *
+     * @depends testInsert
+     */
+    public function testFindByMultipleIds()
+    {
+        $hobbits = $this->repository->find();
+        $otherHobbits = $this->repository->find([
+            'id:in' => ObjectUtils::pluck($hobbits, 'id')
+        ]);
+
+        $this->assertEquals($hobbits, $otherHobbits, $this->logger->getLastMessage());
+    }
+
+    /**
+     * Tests that an exception is thrown when trying to use an empty ID for lookup.
+     *
+     * @expectedException \InvalidArgumentException
+     */
+    public function testFindByEmptyId()
+    {
+        $this->repository->findOneById('');
+    }
+
+    /**
+     * Tests that an exception is thrown when trying to use few empty ID's for lookup.
+     *
+     * @expectedException \InvalidArgumentException
+     */
+    public function testFindByEmptyIds()
+    {
+        $this->repository->find(['id:in' => ['']]);
     }
 
     /**
@@ -263,7 +362,16 @@ class DoctrineDBALTest extends \PHPUnit_Framework_TestCase
      */
     public function testFindQueryError()
     {
-        $this->repository->find([], ['orderBy' => 'no_such_column']);
+        // it looks like the best way to test this is an actual unit test with a mock
+        $store = $this->provideStore();
+
+        $store->getDatabase()
+            ->hobbits
+            ->expects($this->once())
+                ->method('find')
+                ->will($this->throwException(new \MongoException()));
+
+        $store->find('hobbits');
     }
 
     /**
@@ -285,7 +393,16 @@ class DoctrineDBALTest extends \PHPUnit_Framework_TestCase
      */
     public function testCountQueryError()
     {
-        $this->repository->count(['no_such_column' => 5]);
+        // it looks like the best way to test this is an actual unit test with a mock
+        $store = $this->provideStore();
+
+        $store->getDatabase()
+            ->hobbits
+            ->expects($this->once())
+                ->method('count')
+                ->will($this->throwException(new \MongoException()));
+
+        $store->count('hobbits');
     }
 
     /**
@@ -308,16 +425,20 @@ class DoctrineDBALTest extends \PHPUnit_Framework_TestCase
     /**
      * Tests that an exception is thrown when the query fails.
      *
-     * @depends testInsert
      * @expectedException \Knit\Exceptions\StoreQueryErrorException
      */
     public function testUpdateError()
     {
-        $this->repository->getStore()->update(
-            $this->repository->getCollection(),
-            null,
-            ['no_such_column' => 1]
-        );
+        // it looks like the best way to test this is an actual unit test with a mock
+        $store = $this->provideStore();
+
+        $store->getDatabase()
+            ->hobbits
+            ->expects($this->once())
+                ->method('update')
+                ->will($this->throwException(new \MongoException()));
+
+        $store->update('hobbits');
     }
 
     /**
@@ -338,14 +459,70 @@ class DoctrineDBALTest extends \PHPUnit_Framework_TestCase
     /**
      * Tests that an exception is thrown when the query fails.
      *
-     * @depends testInsert
      * @expectedException \Knit\Exceptions\StoreQueryErrorException
      */
     public function testRemoveError()
     {
-        $this->repository->getStore()->remove(
-            $this->repository->getCollection(),
-            new CriteriaExpression(['no_such_column' => 45])
-        );
+        // it looks like the best way to test this is an actual unit test with a mock
+        $store = $this->provideStore();
+
+        $store->getDatabase()
+            ->hobbits
+            ->expects($this->once())
+                ->method('remove')
+                ->will($this->throwException(new \MongoException()));
+
+        $store->remove('hobbits');
+    }
+
+    /**
+     * Provides a Store stub for unit tests.
+     *
+     * @param array $methods List of methods to mock.
+     */
+    protected function provideStore()
+    {
+
+        $client = $this->getMockBuilder(\MongoClient::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+
+        $database = $this->getMockBuilder(\MongoDB::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+
+        $collection = $this->getMockBuilder(\MongoCollection::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+
+        $database->hobbits = $collection;
+
+        $store = new Store([
+            'username' => getenv('MONGODB_USER'),
+            'password' => getenv('MONGODB_PASSWORD'),
+            'hostname' => getenv('MONGODB_HOST'),
+            'port' => getenv('MONGODB_PORT'),
+            'database' => getenv('MONGODB_DBNAME'),
+        ], new CriteriaParser(), $this->logger);
+
+        $this->setPrivateProperty($store, 'client', $client);
+        $this->setPrivateProperty($store, 'database', $database);
+
+        return $store;
+    }
+
+    /**
+     * Sets a value for a private/protected property of the given object through Reflection. Used in mocks.
+     *
+     * @param object $object       Object on which to set the property.
+     * @param string $propertyName Property name.
+     * @param mixed  $value        New value.
+     */
+    protected function setPrivateProperty($object, $propertyName, $value)
+    {
+        $reflection = new \ReflectionClass($object);
+        $property = $reflection->getProperty($propertyName);
+        $property->setAccessible(true);
+        $property->setValue($object, $value);
     }
 }

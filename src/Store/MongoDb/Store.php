@@ -5,6 +5,7 @@ use MongoClient;
 use MongoConnectionException;
 use MongoDB;
 use MongoException;
+use MongoId;
 
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
@@ -253,6 +254,11 @@ class Store implements StoreInterface, LoggerAwareInterface
         // set the new ID
         $properties['_id'] = new MongoId();
 
+        // also map `_id` property to `id` if such is desired
+        if (array_key_exists('id', $properties)) {
+            $properties['id'] = (string)$properties['_id'];
+        }
+
         try {
             $result = $this->database->{$collection}->insert($properties);
         } catch (MongoException $e) {
@@ -274,11 +280,7 @@ class Store implements StoreInterface, LoggerAwareInterface
             ['time' => $timer->stop()]
         );
 
-        if (!$result) {
-            return null;
-        }
-
-        return isset($properties['_id']) ? (string) $properties['_id'] : null;
+        return $properties['_id'];
     }
 
     /**
@@ -294,20 +296,11 @@ class Store implements StoreInterface, LoggerAwareInterface
 
         $criteria = $this->criteriaParser->parse($criteria);
 
-        // check if multiple update is possible
-        $multiple = false;
-        foreach (array_keys($criteria) as $key) {
-            if ($key[0] === '$') {
-                $multiple = true;
-                break;
-            }
-        }
-
         try {
             $info = $this->database->{$collection}->update(
                 $criteria,
                 ['$set' => $properties], // use '$set' operator because update should only update those specific fields
-                ['multiple' => $multiple]
+                ['multi' => true]
             );
         } catch (MongoException $e) {
             $this->log(
@@ -397,9 +390,11 @@ class Store implements StoreInterface, LoggerAwareInterface
     {
         $message = sprintf('MongoDB Query: %s @ %s: %s', $type, $collection, json_encode($criteria));
 
-        if (isset($criteria['params'])) {
-            $message .= sprintf(' with params %s', json_encode($criteria['params']));
+        if (isset($context['params'])) {
+            $message .= sprintf(' with params %s', json_encode($context['params']));
         }
+
+        $context['criteria'] = $criteria;
 
         $this->logger->{$level}($message, $context);
     }

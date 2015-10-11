@@ -79,6 +79,12 @@ env_vars[MYSQL_PASSWORD]=vagrant
 env_vars[MYSQL_HOST]=127.0.0.1
 env_vars[MYSQL_PORT]=3306
 env_vars[MYSQL_DBNAME]=knit_test
+env_vars[MONGODB]=1
+env_vars[MONGODB_USER]=""
+env_vars[MONGODB_PASSWORD]=""
+env_vars[MONGODB_HOST]=127.0.0.1
+env_vars[MONGODB_PORT]=27017
+env_vars[MONGODB_DBNAME]=knit_test
 
 source ~/.profile
 

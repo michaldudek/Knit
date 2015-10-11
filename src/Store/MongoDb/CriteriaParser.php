@@ -28,7 +28,7 @@ class CriteriaParser
      */
     public function parse(CriteriaExpression $criteria = null)
     {
-        if (!$criteria) {
+        if (!$criteria || empty($criteria->getCriteria())) {
             return [];
         }
 
@@ -51,13 +51,26 @@ class CriteriaParser
         foreach ($criteria->getCriteria() as $criterium) {
             if ($criterium instanceof CriteriaExpression) {
                 $logic = $criterium->getLogic() === Knit::LOGIC_OR ? '$or' : '$and';
-                $result[$logic] = $this->parseCriteria($criterium, true);
+
+                $parsedCriterium = $this->parseCriteria($criterium, true);
+
+                // if parent is OR then add this as a collection
+                if ($criteria->getLogic() === Knit::LOGIC_OR) {
+                    $result[][$logic] = $parsedCriterium;
+                } else {
+                    $result[$logic] = $parsedCriterium;
+                }
                 continue;
             }
 
             $property = $criterium->getProperty();
             $operator = $criterium->getOperator();
             $value = $criterium->getValue();
+
+            // to ensure compatibility with other stores, we treat `_id` and `id` the same
+            if ($property === 'id') {
+                $property = '_id';
+            }
 
             // convert the `_id` property to MongoID
             if ($property === '_id') {
@@ -93,18 +106,24 @@ class CriteriaParser
     {
         // if expression for this property isn't an array then it needs to be converted to an equals expression
         if (!is_array($criteria)) {
-             // using '$all' here as there's no '$eq' operator in Mongo
+            // using '$all' here as there's no '$eq' operator in Mongo
             $criteria = ['$all' => [$criteria]];
         }
 
-        // fix analogusly for the value itself
+        // fix analogously for the value itself
         if ($operator === PropertyValue::OPERATOR_EQUALS) {
             $value = ['$all' => [$value]];
         }
 
         // do in a foreach to get the operator (which is set to be key)
         foreach ($value as $operator => $val) {
-            $criteria[$operator] = $val;
+            if (isset($criteria[$operator])) {
+                $criteria[$operator] = is_array($criteria[$operator])
+                    ? array_merge($criteria[$operator], $val)
+                    : [$criteria[$operator], $val];
+            } else {
+                $criteria[$operator] = $val;
+            }
         }
 
         return $criteria;
@@ -123,10 +142,17 @@ class CriteriaParser
             $ids = [];
 
             foreach ($value as $id) {
+                if (empty($id)) {
+                    throw new \InvalidArgumentException('Cannot convert an empty value to MongoId object.');
+                }
                 $ids[] = new MongoId($id);
             }
             
             return $ids;
+        }
+
+        if (empty($value)) {
+            throw new \InvalidArgumentException('Cannot convert an empty value to MongoId object.');
         }
 
         return new MongoId($value);
@@ -159,6 +185,10 @@ class CriteriaParser
                 $result = ['$in' => $value];
                 break;
 
+            case PropertyValue::OPERATOR_NOT_IN:
+                $result = ['$nin' => $value];
+                break;
+
             case PropertyValue::OPERATOR_GREATER_THAN:
                 $result = ['$gt' => $value];
                 break;
@@ -175,7 +205,22 @@ class CriteriaParser
                 $result = ['$lte' => $value];
                 break;
 
+            case PropertyValue::OPERATOR_LIKE:
+                // replace non-escaped % to match-all
+                $value = preg_replace('/(?<!\\\)%/', '.+', $value);
+                // replace escaped % (\%) to normal %
+                $value = preg_replace('/\\\%/', '%', $value);
+                // and fall through to regex handle, as the rest is handled like a regex
+
+            case PropertyValue::OPERATOR_REGEX:
+                $isRegex = preg_match('/^\/(.+)\/(\w*)/', $value, $matches) === 1;
+                $value = $isRegex ? $matches[1] : $value;
+                $options = $isRegex ? $matches[2] : 'i';
+                $result = ['$regex' => $value, '$options' => $options];
+                break;
+
             // if it hasn't been handled by the above then throw an exception
+            case PropertyValue::OPERATOR_NOT_LIKE: // can't find a way to handle (?!.*) pattern...
             default:
                 throw new InvalidOperatorException(
                     sprintf(

@@ -27,6 +27,7 @@ class PropertyValue
     const OPERATOR_GREATER_THAN_EQUAL = '__GREATHER_THAN_EQUAL__';
     const OPERATOR_LOWER_THAN = '__LOWER_THAN__';
     const OPERATOR_LOWER_THAN_EQUAL = '__LOWER_THAN_EQUAL__';
+    const OPERATOR_REGEX = '__REGEX__';
     const OPERATOR_LIKE = '__LIKE__';
     const OPERATOR_NOT_LIKE = '__NOT_LIKE__';
     const OPERATOR_EXISTS = '__EXISTS__';
@@ -174,6 +175,17 @@ class PropertyValue
     protected function lteOperator($value)
     {
         $this->operator = self::OPERATOR_LOWER_THAN_EQUAL;
+        $this->value = $value;
+    }
+
+    /**
+     * Handles REGEX operator.
+     *
+     * @param string $value Criteria value.
+     */
+    protected function regexOperator($value)
+    {
+        $this->operator = self::OPERATOR_REGEX;
         $this->value = $value;
     }
 
