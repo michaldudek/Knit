@@ -16,9 +16,30 @@ use Knit\Knit;
  * @author     Michał Pałys-Dudek <michal@michaldudek.pl>
  * @copyright  2015 Michał Pałys-Dudek
  * @license    https://github.com/michaldudek/Knit/blob/master/LICENSE.md MIT License
+ *
+ * @SuppressWarnings(PHPMD.UnusedPrivateMethod)
  */
 class CriteriaParser
 {
+    /**
+     * Map of operators and functions that create appropriate expressions.
+     *
+     * @var array
+     */
+    private static $operatorExpressionMap = [
+        PropertyValue::OPERATOR_EQUALS => 'equals',
+        PropertyValue::OPERATOR_NOT => 'notEquals',
+        PropertyValue::OPERATOR_IN => 'in',
+        PropertyValue::OPERATOR_NOT_IN => 'notIn',
+        PropertyValue::OPERATOR_GREATER_THAN => 'greaterThan',
+        PropertyValue::OPERATOR_GREATER_THAN_EQUAL => 'greaterThanEqual',
+        PropertyValue::OPERATOR_LOWER_THAN => 'lowerThan',
+        PropertyValue::OPERATOR_LOWER_THAN_EQUAL => 'lowerThanEqual',
+        PropertyValue::OPERATOR_LIKE => 'like',
+        //PropertyValue::OPERATOR_NOT_LIKE => 'notLike', // can't find a way to handle (?!.*) pattern...
+        PropertyValue::OPERATOR_REGEX => 'regex'
+    ];
+
     /**
      * Parses the `CriteriaExpression` into MongoDb criteria array.
      *
@@ -63,28 +84,44 @@ class CriteriaParser
                 continue;
             }
 
-            $property = $criterium->getProperty();
-            $operator = $criterium->getOperator();
-            $value = $criterium->getValue();
+            $result = $this->parseCriterium($criterium, $result, $asCollection);
+        }
 
-            // to ensure compatibility with other stores, we treat `_id` and `id` the same
-            if ($property === 'id') {
-                $property = '_id';
-            }
+        return $result;
+    }
 
-            // convert the `_id` property to MongoID
-            if ($property === '_id') {
-                $value = $this->convertToMongoId($value);
-            }
+    /**
+     * Parses a single criterium.
+     *
+     * @param PropertyValue $criterium    Single criterium.
+     * @param array         $result       Result of parsing criteria so far.
+     * @param boolean       $asCollection [optional] Should this criteria be parsed as a collection?
+     *                                    Required for OR logic. For internal use. Default: `false`.
+     *
+     * @return array
+     */
+    private function parseCriterium(PropertyValue $criterium, array $result, $asCollection = false)
+    {
+        $property = $criterium->getProperty();
+        $operator = $criterium->getOperator();
+        $value = $criterium->getValue();
 
-            // merge operator with the value according to Mongo Api
-            $value = $this->parseOperator($operator, $value);
+        // to ensure compatibility with other stores, we treat `_id` and `id` the same
+        if ($property === 'id') {
+            $property = '_id';
+        }
 
-            if ($asCollection) {
-                $result[] = [$property => $value];
-                continue;
-            }
+        // convert the `_id` property to MongoID
+        if ($property === '_id') {
+            $value = $this->convertToMongoId($value);
+        }
 
+        // merge operator with the value according to Mongo Api
+        $value = $this->parseOperator($property, $operator, $value);
+
+        if ($asCollection) {
+            $result[] = [$property => $value];
+        } else {
             $result[$property] = isset($result[$property])
                 ? $this->mergeCriteria($result[$property], $value, $operator)
                 : $value;
@@ -161,6 +198,7 @@ class CriteriaParser
     /**
      * Parses the operator and value pair into MongoDb format.
      *
+     * @param string $property Property name.
      * @param string $operator Operator, one of `PropertyValue::OPERATOR_*` constants.
      * @param mixed  $value    Expected property value.
      *
@@ -168,68 +206,161 @@ class CriteriaParser
      *
      * @throws InvalidOperatorException When not supported operator was passed.
      */
-    private function parseOperator($operator, $value)
+    private function parseOperator($property, $operator, $value)
     {
-        $result = $value;
-
-        switch ($operator) {
-            case PropertyValue::OPERATOR_EQUALS:
-                $result = $value;
-                break;
-
-            case PropertyValue::OPERATOR_NOT:
-                $result = ['$ne' => $value];
-                break;
-
-            case PropertyValue::OPERATOR_IN:
-                $result = ['$in' => $value];
-                break;
-
-            case PropertyValue::OPERATOR_NOT_IN:
-                $result = ['$nin' => $value];
-                break;
-
-            case PropertyValue::OPERATOR_GREATER_THAN:
-                $result = ['$gt' => $value];
-                break;
-
-            case PropertyValue::OPERATOR_GREATER_THAN_EQUAL:
-                $result = ['$gte' => $value];
-                break;
-
-            case PropertyValue::OPERATOR_LOWER_THAN:
-                $result = ['$lt' => $value];
-                break;
-
-            case PropertyValue::OPERATOR_LOWER_THAN_EQUAL:
-                $result = ['$lte' => $value];
-                break;
-
-            case PropertyValue::OPERATOR_LIKE:
-                // replace non-escaped % to match-all
-                $value = preg_replace('/(?<!\\\)%/', '.+', $value);
-                // replace escaped % (\%) to normal %
-                $value = preg_replace('/\\\%/', '%', $value);
-                // and fall through to regex handle, as the rest is handled like a regex
-
-            case PropertyValue::OPERATOR_REGEX:
-                $isRegex = preg_match('/^\/(.+)\/(\w*)/', $value, $matches) === 1;
-                $value = $isRegex ? $matches[1] : $value;
-                $options = $isRegex ? $matches[2] : 'i';
-                $result = ['$regex' => $value, '$options' => $options];
-                break;
-
-            // if it hasn't been handled by the above then throw an exception
-            case PropertyValue::OPERATOR_NOT_LIKE: // can't find a way to handle (?!.*) pattern...
-            default:
-                throw new InvalidOperatorException(
-                    sprintf(
-                        'MongoDBStore cannot handle operator %s',
-                        trim($operator, '_')
-                    )
-                );
+        if (!isset(self::$operatorExpressionMap[$operator])
+            || !method_exists($this, self::$operatorExpressionMap[$operator])
+        ) {
+            throw new InvalidOperatorException(
+                sprintf(
+                    'MongoDBStore cannot handle operator %s',
+                    trim($operator, '_')
+                )
+            );
         }
 
-        return $result;
+        $method = self::$operatorExpressionMap[$operator];
+        return $this->{$method}($property, $value);
+    }
+
+    /**
+     * Creates an EQUALS expression.
+     *
+     * @param string $property Property name.
+     * @param mixed  $value    Property value.
+     *
+     * @return mixed
+     */
+    private function equals($property, $value)
+    {
+        return $value;
+    }
+
+    /**
+     * Creates a NOT EQUALS expression.
+     *
+     * @param string $property Property name.
+     * @param mixed  $value    Property value.
+     *
+     * @return array
+     */
+    private function notEquals($property, $value)
+    {
+        return ['$ne' => $value];
+    }
+
+    /**
+     * Creates a IN expression.
+     *
+     * @param string $property Property name.
+     * @param mixed  $value    Property value.
+     *
+     * @return array
+     *
+     * @SuppressWarnings(PHPMD.ShortMethodName)
+     */
+    private function in($property, $value)
+    {
+        return ['$in' => $value];
+    }
+
+    /**
+     * Creates a NOT IN expression.
+     *
+     * @param string $property Property name.
+     * @param mixed  $value    Property value.
+     *
+     * @return array
+     */
+    private function notIn($property, $value)
+    {
+        return ['$nin' => $value];
+    }
+
+    /**
+     * Creates a GREATER THAN expression.
+     *
+     * @param string $property Property name.
+     * @param mixed  $value    Property value.
+     *
+     * @return array
+     */
+    private function greaterThan($property, $value)
+    {
+        return ['$gt' => $value];
+    }
+
+    /**
+     * Creates a GREATER THAN EQUAL expression.
+     *
+     * @param string $property Property name.
+     * @param mixed  $value    Property value.
+     *
+     * @return array
+     */
+    private function greaterThanEqual($property, $value)
+    {
+        return ['$gte' => $value];
+    }
+
+    /**
+     * Creates a LOWER THAN expression.
+     *
+     * @param string $property Property name.
+     * @param mixed  $value    Property value.
+     *
+     * @return array
+     */
+    private function lowerThan($property, $value)
+    {
+        return ['$lt' => $value];
+    }
+
+    /**
+     * Creates a LOWER THAN EQUAL expression.
+     *
+     * @param string $property Property name.
+     * @param mixed  $value    Property value.
+     *
+     * @return array
+     */
+    private function lowerThanEqual($property, $value)
+    {
+        return ['$lte' => $value];
+    }
+
+    /**
+     * Creates a LIKE expression.
+     *
+     * @param string $property Property name.
+     * @param mixed  $value    Property value.
+     *
+     * @return array
+     */
+    private function like($property, $value)
+    {
+        // replace non-escaped % to match-all
+        $value = preg_replace('/(?<!\\\)%/', '.+', $value);
+        // replace escaped % (\%) to normal %
+        $value = preg_replace('/\\\%/', '%', $value);
+
+        // and redirect to regex
+        return $this->regex($property, $value);
+    }
+
+    /**
+     * Creates a REGEX expression.
+     *
+     * @param string $property Property name.
+     * @param mixed  $value    Property value.
+     *
+     * @return array
+     */
+    private function regex($property, $value)
+    {
+        $isRegex = preg_match('/^\/(.+)\/(\w*)/', $value, $matches) === 1;
+        $value = $isRegex ? $matches[1] : $value;
+        $options = $isRegex ? $matches[2] : 'i';
+        return ['$regex' => $value, '$options' => $options];
     }
 }

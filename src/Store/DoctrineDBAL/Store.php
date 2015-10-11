@@ -218,7 +218,7 @@ class Store implements StoreInterface, LoggerAwareInterface
 
         // execute the query
         try {
-            $result = $queryBuilder->execute();
+            $queryBuilder->execute();
             $lastInsertId = $this->connection->lastInsertId();
         } catch (\Exception $e) {
             $this->log($sql, $sqlParams, [], 'error');

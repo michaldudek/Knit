@@ -23,6 +23,8 @@ use Knit\Knit;
  * @author    Michał Pałys-Dudek <michal@michaldudek.pl>
  * @copyright 2015 Michał Pałys-Dudek
  * @license   https://github.com/michaldudek/Knit/blob/master/LICENSE.md MIT License
+ *
+ * @SuppressWarnings(PHPMD.TooManyPublicMethods,PHPMD.CouplingBetweenObjects)
  */
 class Repository
 {

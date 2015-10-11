@@ -260,7 +260,7 @@ class Store implements StoreInterface, LoggerAwareInterface
         }
 
         try {
-            $result = $this->database->{$collection}->insert($properties);
+            $this->database->{$collection}->insert($properties);
         } catch (MongoException $e) {
             $this->log(
                 'insert',

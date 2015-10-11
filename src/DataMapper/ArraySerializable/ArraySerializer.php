@@ -17,8 +17,6 @@ use Knit\DataMapper\DataMapperInterface;
  */
 class ArraySerializer implements DataMapperInterface
 {
-    private $identifiers = [];
-
     /**
      * Checks whether or not the data mapper supports the given class.
      *

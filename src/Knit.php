@@ -131,11 +131,37 @@ class Knit
         $store = $store === null ? $this->defaultStore : $store;
         $dataMapper = $dataMapper === null ? $this->defaultDataMapper : $dataMapper;
 
+        $repositoryClass = $this->findRepositoryClass($objectClass, $repositoryClass);
+
+        // create the repository and store it for the future
+        $repository = new $repositoryClass(
+            $objectClass,
+            $collection,
+            $store,
+            $dataMapper,
+            $this->eventDispatcher
+        );
+
+        $this->repositories[$objectClass] = $repository;
+        return $repository;
+    }
+
+    /**
+     * Attempts to find and verify a repository class for the given object class.
+     *
+     * @param string $objectClass     Object class.
+     * @param string $repositoryClass [optional] Suggested repository class, if any.
+     *
+     * @return string
+     */
+    protected function findRepositoryClass($objectClass, $repositoryClass = null)
+    {
         // figure out a repository class if none given
         if ($repositoryClass === null) {
             $repositoryClass = $objectClass .'Repository';
             if (!class_exists($repositoryClass)) {
-                $repositoryClass = Repository::class;
+                // return already and don't bother checking, as we know it
+                return Repository::class;
             }
         }
 
@@ -150,16 +176,6 @@ class Knit
             );
         }
 
-        // create the repository and store it for the future
-        $repository = new $repositoryClass(
-            $objectClass,
-            $collection,
-            $store,
-            $dataMapper,
-            $this->eventDispatcher
-        );
-
-        $this->repositories[$objectClass] = $repository;
-        return $repository;
+        return $repositoryClass;
     }
 }
