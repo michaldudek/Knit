@@ -54,14 +54,18 @@ class DoctrineDBALTest extends \PHPUnit_Framework_TestCase
         try {
             $this->logger = new Fixtures\TestLogger();
 
-            $store = new Store([
-                'driver' => 'pdo_mysql',
-                'user' => getenv('MYSQL_USER'),
-                'password' => getenv('MYSQL_PASSWORD'),
-                'host' => getenv('MYSQL_HOST'),
-                'port' => getenv('MYSQL_PORT'),
-                'dbname' => getenv('MYSQL_DBNAME')
-            ], new CriteriaParser(), $this->logger);
+            $store = new Store(
+                [
+                    'driver' => 'pdo_mysql',
+                    'user' => getenv('MYSQL_USER'),
+                    'password' => getenv('MYSQL_PASSWORD'),
+                    'host' => getenv('MYSQL_HOST'),
+                    'port' => getenv('MYSQL_PORT'),
+                    'dbname' => getenv('MYSQL_DBNAME')
+                ],
+                new CriteriaParser(),
+                $this->logger
+            );
 
             $this->repository = new Repository(
                 Fixtures\Hobbit::class,
@@ -83,12 +87,15 @@ class DoctrineDBALTest extends \PHPUnit_Framework_TestCase
      */
     public function testConnectionError()
     {
-        new Store([
-            'driver' => 'pdo_mysql',
-            'user' => 'unknown',
-            'password' => 'notsosecret',
-            'host' => '127.0.1.1'
-        ], new CriteriaParser());
+        new Store(
+            [
+                'driver' => 'pdo_mysql',
+                'user' => 'unknown',
+                'password' => 'notsosecret',
+                'host' => '127.0.1.1'
+            ],
+            new CriteriaParser()
+        );
     }
 
     /**
@@ -235,7 +242,11 @@ class DoctrineDBALTest extends \PHPUnit_Framework_TestCase
     /**
      * Tests finding objects by various queries.
      *
-     * @depends testInsert
+     * @param array $criteria Search criteria.
+     * @param array $params   Search params.
+     * @param array $expected Expected results.
+     *
+     * @depends      testInsert
      * @dataProvider provideFindCriteria
      */
     public function testFind(array $criteria, array $params, array $expected)
@@ -269,7 +280,11 @@ class DoctrineDBALTest extends \PHPUnit_Framework_TestCase
     /**
      * Tests counting objects by various queries.
      *
-     * @depends testInsert
+     * @param array $criteria Search criteria.
+     * @param array $params   Search params.
+     * @param array $expected Expected results.
+     *
+     * @depends      testInsert
      * @dataProvider provideFindCriteria
      */
     public function testCount(array $criteria, array $params, array $expected)
@@ -308,7 +323,7 @@ class DoctrineDBALTest extends \PHPUnit_Framework_TestCase
     /**
      * Tests that an exception is thrown when the query fails.
      *
-     * @depends testInsert
+     * @depends           testInsert
      * @expectedException \Knit\Exceptions\StoreQueryErrorException
      */
     public function testUpdateError()
@@ -338,7 +353,7 @@ class DoctrineDBALTest extends \PHPUnit_Framework_TestCase
     /**
      * Tests that an exception is thrown when the query fails.
      *
-     * @depends testInsert
+     * @depends           testInsert
      * @expectedException \Knit\Exceptions\StoreQueryErrorException
      */
     public function testRemoveError()

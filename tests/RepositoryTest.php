@@ -16,10 +16,10 @@ use Knit\Repository;
 /**
  * Tests repository.
  *
- * @package    Knit
- * @author     Michał Pałys-Dudek <michal@michaldudek.pl>
- * @copyright  2015 Michał Pałys-Dudek
- * @license    https://github.com/michaldudek/Knit/blob/master/LICENSE.md MIT License
+ * @package   Knit
+ * @author    Michał Pałys-Dudek <michal@michaldudek.pl>
+ * @copyright 2015 Michał Pałys-Dudek
+ * @license   https://github.com/michaldudek/Knit/blob/master/LICENSE.md MIT License
  *
  * @covers Knit\Repository
  * @covers Knit\Events\CriteriaEvent
@@ -69,10 +69,6 @@ class RepositoryTest extends \PHPUnit_Framework_TestCase
 
     /**
      * Tests the ::find method.
-     *
-     * @param array $criteria Search criteria.
-     * @param array $params   Search params.
-     * @param array $expected Expected store results.
      */
     public function testFind()
     {
@@ -152,16 +148,18 @@ class RepositoryTest extends \PHPUnit_Framework_TestCase
             ->method('find')
             ->with(
                 $mocks['collection'],
-                $this->callback(function ($criteriaExpression) use ($newCriteria) {
-                    $this->assertInstanceOf(CriteriaExpression::class, $criteriaExpression);
+                $this->callback(
+                    function ($criteriaExpression) use ($newCriteria) {
+                        $this->assertInstanceOf(CriteriaExpression::class, $criteriaExpression);
 
-                    foreach ($criteriaExpression->getCriteria() as $i => $criterium) {
-                        $this->assertInstanceOf(PropertyValue::class, $criterium);
-                        $this->assertEquals($newCriteria[$criterium->getProperty()], $criterium->getValue());
+                        foreach ($criteriaExpression->getCriteria() as $i => $criterium) {
+                            $this->assertInstanceOf(PropertyValue::class, $criterium);
+                            $this->assertEquals($newCriteria[$criterium->getProperty()], $criterium->getValue());
+                        }
+
+                        return true;
                     }
-
-                    return true;
-                }),
+                ),
                 $newParams
             )
             ->will($this->returnValue([]));
@@ -275,6 +273,9 @@ class RepositoryTest extends \PHPUnit_Framework_TestCase
         $this->assertSame($expected, $result);
     }
 
+    /**
+     * Tests finding an object by idenfitier.
+     */
     public function testFindOneByIdentifier()
     {
         $mocks = $this->provideMocks();
@@ -293,6 +294,9 @@ class RepositoryTest extends \PHPUnit_Framework_TestCase
         $this->assertSame($expected, $result);
     }
 
+    /**
+     * Tests finding a single object with a compound key.
+     */
     public function testFindOneByCompoundIdentifier()
     {
         $mocks = $this->provideMocks();
@@ -357,10 +361,11 @@ class RepositoryTest extends \PHPUnit_Framework_TestCase
     /**
      * Tests generating search filters based on magic method names.
      *
-     * @param string $method    Magic method name.
-     * @param array  $arguments Method arguments.
-     * @param array  $filters   Generated filters.
-     * @param array  $params    Any params.
+     * @param string $method            Magic method name.
+     * @param array  $arguments         Method arguments.
+     * @param array  $filters           Generated filters.
+     * @param array  $params            Any params.
+     * @param string $expectedException [optional] Expected exception (if any).
      *
      * @dataProvider provideMagicMethodNames
      */
@@ -418,6 +423,11 @@ class RepositoryTest extends \PHPUnit_Framework_TestCase
 
     /**
      * Tests generating search filters based on magic method names.
+     *
+     * @param string $method    Magic method name.
+     * @param array  $arguments Method arguments.
+     * @param array  $filters   Generated filters.
+     * @param array  $params    Any params.
      *
      * @dataProvider provideMagicMethodNamesForFindOne
      */
@@ -500,16 +510,18 @@ class RepositoryTest extends \PHPUnit_Framework_TestCase
             ->method('count')
             ->with(
                 $mocks['collection'],
-                $this->callback(function ($criteriaExpression) use ($newCriteria) {
-                    $this->assertInstanceOf(CriteriaExpression::class, $criteriaExpression);
+                $this->callback(
+                    function ($criteriaExpression) use ($newCriteria) {
+                        $this->assertInstanceOf(CriteriaExpression::class, $criteriaExpression);
 
-                    foreach ($criteriaExpression->getCriteria() as $i => $criterium) {
-                        $this->assertInstanceOf(PropertyValue::class, $criterium);
-                        $this->assertEquals($newCriteria[$criterium->getProperty()], $criterium->getValue());
+                        foreach ($criteriaExpression->getCriteria() as $i => $criterium) {
+                            $this->assertInstanceOf(PropertyValue::class, $criterium);
+                            $this->assertEquals($newCriteria[$criterium->getProperty()], $criterium->getValue());
+                        }
+
+                        return true;
                     }
-
-                    return true;
-                }),
+                ),
                 $newParams
             )
             ->will($this->returnValue(0));
@@ -566,6 +578,8 @@ class RepositoryTest extends \PHPUnit_Framework_TestCase
     /**
      * Tests saving a previously stored object.
      *
+     * @param object $hobbit Previously stored object.
+     *
      * @depends testSaveUnstoredObject
      */
     public function testSaveStoredObject($hobbit)
@@ -577,16 +591,18 @@ class RepositoryTest extends \PHPUnit_Framework_TestCase
             ->method('update')
             ->with(
                 $mocks['collection'],
-                $this->callback(function ($criteriaExpression) use ($hobbit) {
-                    $this->assertInstanceOf(CriteriaExpression::class, $criteriaExpression);
-                    $criteria = $criteriaExpression->getCriteria();
-                    $this->assertCount(1, $criteria);
-                    $criterium = current($criteria);
-                    $this->assertEquals('id', $criterium->getProperty());
-                    $this->assertEquals(PropertyValue::OPERATOR_EQUALS, $criterium->getOperator());
-                    $this->assertEquals($hobbit->getId(), $criterium->getValue());
-                    return true;
-                }),
+                $this->callback(
+                    function ($criteriaExpression) use ($hobbit) {
+                        $this->assertInstanceOf(CriteriaExpression::class, $criteriaExpression);
+                        $criteria = $criteriaExpression->getCriteria();
+                        $this->assertCount(1, $criteria);
+                        $criterium = current($criteria);
+                        $this->assertEquals('id', $criterium->getProperty());
+                        $this->assertEquals(PropertyValue::OPERATOR_EQUALS, $criterium->getOperator());
+                        $this->assertEquals($hobbit->getId(), $criterium->getValue());
+                        return true;
+                    }
+                ),
                 $hobbit->toArray()
             );
 
@@ -813,16 +829,18 @@ class RepositoryTest extends \PHPUnit_Framework_TestCase
             ->method('update')
             ->with(
                 $mocks['collection'],
-                $this->callback(function ($criteriaExpression) use ($hobbit) {
-                    $this->assertInstanceOf(CriteriaExpression::class, $criteriaExpression);
-                    $criteria = $criteriaExpression->getCriteria();
-                    $this->assertCount(1, $criteria);
-                    $criterium = current($criteria);
-                    $this->assertEquals('id', $criterium->getProperty());
-                    $this->assertEquals(PropertyValue::OPERATOR_EQUALS, $criterium->getOperator());
-                    $this->assertEquals($hobbit->getId(), $criterium->getValue());
-                    return true;
-                }),
+                $this->callback(
+                    function ($criteriaExpression) use ($hobbit) {
+                        $this->assertInstanceOf(CriteriaExpression::class, $criteriaExpression);
+                        $criteria = $criteriaExpression->getCriteria();
+                        $this->assertCount(1, $criteria);
+                        $criterium = current($criteria);
+                        $this->assertEquals('id', $criterium->getProperty());
+                        $this->assertEquals(PropertyValue::OPERATOR_EQUALS, $criterium->getOperator());
+                        $this->assertEquals($hobbit->getId(), $criterium->getValue());
+                        return true;
+                    }
+                ),
                 $hobbit->toArray()
             );
 
@@ -849,6 +867,9 @@ class RepositoryTest extends \PHPUnit_Framework_TestCase
         $repository->update($hobbit);
     }
 
+    /**
+     * Tests updating an object with compound key.
+     */
     public function testUpdateWithCompoundKey()
     {
         $mocks = $this->provideMocks();
@@ -863,22 +884,24 @@ class RepositoryTest extends \PHPUnit_Framework_TestCase
             ->method('update')
             ->with(
                 $mocks['collection'],
-                $this->callback(function ($criteriaExpression) use ($elf) {
-                    $this->assertInstanceOf(CriteriaExpression::class, $criteriaExpression);
-                    $criteria = $criteriaExpression->getCriteria();
-                    $this->assertCount(2, $criteria);
+                $this->callback(
+                    function ($criteriaExpression) use ($elf) {
+                        $this->assertInstanceOf(CriteriaExpression::class, $criteriaExpression);
+                        $criteria = $criteriaExpression->getCriteria();
+                        $this->assertCount(2, $criteria);
 
-                    $i = 0;
-                    foreach (['place' => 'getPlace', 'name' => 'getName'] as $property => $getter) {
-                        $criterium = $criteria[$i];
-                        $this->assertEquals($property, $criterium->getProperty());
-                        $this->assertEquals(PropertyValue::OPERATOR_EQUALS, $criterium->getOperator());
-                        $this->assertEquals($elf->{$getter}(), $criterium->getValue());
-                        $i++;
+                        $i = 0;
+                        foreach (['place' => 'getPlace', 'name' => 'getName'] as $property => $getter) {
+                            $criterium = $criteria[$i];
+                            $this->assertEquals($property, $criterium->getProperty());
+                            $this->assertEquals(PropertyValue::OPERATOR_EQUALS, $criterium->getOperator());
+                            $this->assertEquals($elf->{$getter}(), $criterium->getValue());
+                            $i++;
+                        }
+
+                        return true;
                     }
-
-                    return true;
-                }),
+                ),
                 $elf->toArray()
             );
 
@@ -964,16 +987,18 @@ class RepositoryTest extends \PHPUnit_Framework_TestCase
             ->method('remove')
             ->with(
                 $mocks['collection'],
-                $this->callback(function ($criteriaExpression) use ($hobbit) {
-                    $this->assertInstanceOf(CriteriaExpression::class, $criteriaExpression);
-                    $criteria = $criteriaExpression->getCriteria();
-                    $this->assertCount(1, $criteria);
-                    $criterium = current($criteria);
-                    $this->assertEquals('id', $criterium->getProperty());
-                    $this->assertEquals(PropertyValue::OPERATOR_EQUALS, $criterium->getOperator());
-                    $this->assertEquals($hobbit->getId(), $criterium->getValue());
-                    return true;
-                })
+                $this->callback(
+                    function ($criteriaExpression) use ($hobbit) {
+                        $this->assertInstanceOf(CriteriaExpression::class, $criteriaExpression);
+                        $criteria = $criteriaExpression->getCriteria();
+                        $this->assertCount(1, $criteria);
+                        $criterium = current($criteria);
+                        $this->assertEquals('id', $criterium->getProperty());
+                        $this->assertEquals(PropertyValue::OPERATOR_EQUALS, $criterium->getOperator());
+                        $this->assertEquals($hobbit->getId(), $criterium->getValue());
+                        return true;
+                    }
+                )
             );
 
         $mocks['eventDispatcher']->expects($this->at(0))
@@ -989,6 +1014,9 @@ class RepositoryTest extends \PHPUnit_Framework_TestCase
         $repository->delete($hobbit);
     }
 
+    /**
+     * Tests deleting an object that has compound key.
+     */
     public function testDeleteWithCompoundKey()
     {
         $mocks = $this->provideMocks();
@@ -1003,22 +1031,24 @@ class RepositoryTest extends \PHPUnit_Framework_TestCase
             ->method('remove')
             ->with(
                 $mocks['collection'],
-                $this->callback(function ($criteriaExpression) use ($elf) {
-                    $this->assertInstanceOf(CriteriaExpression::class, $criteriaExpression);
-                    $criteria = $criteriaExpression->getCriteria();
-                    $this->assertCount(2, $criteria);
+                $this->callback(
+                    function ($criteriaExpression) use ($elf) {
+                        $this->assertInstanceOf(CriteriaExpression::class, $criteriaExpression);
+                        $criteria = $criteriaExpression->getCriteria();
+                        $this->assertCount(2, $criteria);
 
-                    $i = 0;
-                    foreach (['place' => 'getPlace', 'name' => 'getName'] as $property => $getter) {
-                        $criterium = $criteria[$i];
-                        $this->assertEquals($property, $criterium->getProperty());
-                        $this->assertEquals(PropertyValue::OPERATOR_EQUALS, $criterium->getOperator());
-                        $this->assertEquals($elf->{$getter}(), $criterium->getValue());
-                        $i++;
+                        $i = 0;
+                        foreach (['place' => 'getPlace', 'name' => 'getName'] as $property => $getter) {
+                            $criterium = $criteria[$i];
+                            $this->assertEquals($property, $criterium->getProperty());
+                            $this->assertEquals(PropertyValue::OPERATOR_EQUALS, $criterium->getOperator());
+                            $this->assertEquals($elf->{$getter}(), $criterium->getValue());
+                            $i++;
+                        }
+
+                        return true;
                     }
-
-                    return true;
-                })
+                )
             );
 
         $mocks['eventDispatcher']->expects($this->at(0))
@@ -1377,11 +1407,13 @@ class RepositoryTest extends \PHPUnit_Framework_TestCase
         $mocks = $this->provideMocks();
         $repository = $this->provideRepository($mocks);
 
-        $hobbit = $repository->createWithData([
-            'id' => 4,
-            'name' => 'Merry',
-            'surname' => 'Brandybuck'
-        ]);
+        $hobbit = $repository->createWithData(
+            [
+                'id' => 4,
+                'name' => 'Merry',
+                'surname' => 'Brandybuck'
+            ]
+        );
 
         $this->assertEquals(4, $hobbit->getId());
         $this->assertEquals('Merry', $hobbit->getName());
@@ -1403,10 +1435,13 @@ class RepositoryTest extends \PHPUnit_Framework_TestCase
         $hobbit->setSurname('Baggins');
         $hobbit->setHeight(130);
 
-        $repository->updateWithData($hobbit, [
-            'name' => 'Frodo',
-            'height' => 140
-        ]);
+        $repository->updateWithData(
+            $hobbit,
+            [
+                'name' => 'Frodo',
+                'height' => 140
+            ]
+        );
 
         $this->assertEquals(2, $hobbit->getId());
         $this->assertEquals('Frodo', $hobbit->getName());
@@ -1426,9 +1461,12 @@ class RepositoryTest extends \PHPUnit_Framework_TestCase
 
         $orc = new Fixtures\Orc();
 
-        $repository->updateWithData($orc, [
-            'name' => 'Azog'
-        ]);
+        $repository->updateWithData(
+            $orc,
+            [
+                'name' => 'Azog'
+            ]
+        );
     }
 
     /**

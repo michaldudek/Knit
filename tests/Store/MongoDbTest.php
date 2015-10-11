@@ -54,13 +54,17 @@ class MongoDbTest extends \PHPUnit_Framework_TestCase
         try {
             $this->logger = new Fixtures\TestLogger();
 
-            $store = new Store([
-                'username' => getenv('MONGODB_USER'),
-                'password' => getenv('MONGODB_PASSWORD'),
-                'hostname' => getenv('MONGODB_HOST'),
-                'port' => getenv('MONGODB_PORT'),
-                'database' => getenv('MONGODB_DBNAME'),
-            ], new CriteriaParser(), $this->logger);
+            $store = new Store(
+                [
+                    'username' => getenv('MONGODB_USER'),
+                    'password' => getenv('MONGODB_PASSWORD'),
+                    'hostname' => getenv('MONGODB_HOST'),
+                    'port' => getenv('MONGODB_PORT'),
+                    'database' => getenv('MONGODB_DBNAME'),
+                ],
+                new CriteriaParser(),
+                $this->logger
+            );
 
             $this->repository = new Repository(
                 Fixtures\Hobbit::class,
@@ -82,12 +86,15 @@ class MongoDbTest extends \PHPUnit_Framework_TestCase
      */
     public function testConnectionError()
     {
-        new Store([
-            'username' => 'unknown',
-            'password' => 'notsosecret',
-            'hostname' => '127.0.1.1',
-            'database' => 'nothing'
-        ], new CriteriaParser());
+        new Store(
+            [
+                'username' => 'unknown',
+                'password' => 'notsosecret',
+                'hostname' => '127.0.1.1',
+                'database' => 'nothing'
+            ],
+            new CriteriaParser()
+        );
     }
 
     /**
@@ -97,11 +104,14 @@ class MongoDbTest extends \PHPUnit_Framework_TestCase
      */
     public function testConfigError()
     {
-        new Store([
-            'username' => 'unknown',
-            'password' => 'notsosecret',
-            'hostname' => '127.0.1.1'
-        ], new CriteriaParser());
+        new Store(
+            [
+                'username' => 'unknown',
+                'password' => 'notsosecret',
+                'hostname' => '127.0.1.1'
+            ],
+            new CriteriaParser()
+        );
     }
 
     /**
@@ -151,8 +161,8 @@ class MongoDbTest extends \PHPUnit_Framework_TestCase
         $store->getDatabase()
             ->hobbits
             ->expects($this->once())
-                ->method('insert')
-                ->will($this->throwException(new \MongoException()));
+            ->method('insert')
+            ->will($this->throwException(new \MongoException()));
 
         $store->add('hobbits', []);
     }
@@ -295,7 +305,11 @@ class MongoDbTest extends \PHPUnit_Framework_TestCase
     /**
      * Tests finding objects by various queries.
      *
-     * @depends testInsert
+     * @param array $criteria Search criteria.
+     * @param array $params   Search params.
+     * @param array $expected Expected results.
+     *
+     * @depends      testInsert
      * @dataProvider provideFindCriteria
      */
     public function testFind(array $criteria, array $params, array $expected)
@@ -318,9 +332,11 @@ class MongoDbTest extends \PHPUnit_Framework_TestCase
     public function testFindByMultipleIds()
     {
         $hobbits = $this->repository->find();
-        $otherHobbits = $this->repository->find([
-            'id:in' => ObjectUtils::pluck($hobbits, 'id')
-        ]);
+        $otherHobbits = $this->repository->find(
+            [
+                'id:in' => ObjectUtils::pluck($hobbits, 'id')
+            ]
+        );
 
         $this->assertEquals($hobbits, $otherHobbits, $this->logger->getLastMessage());
     }
@@ -368,8 +384,8 @@ class MongoDbTest extends \PHPUnit_Framework_TestCase
         $store->getDatabase()
             ->hobbits
             ->expects($this->once())
-                ->method('find')
-                ->will($this->throwException(new \MongoException()));
+            ->method('find')
+            ->will($this->throwException(new \MongoException()));
 
         $store->find('hobbits');
     }
@@ -377,7 +393,11 @@ class MongoDbTest extends \PHPUnit_Framework_TestCase
     /**
      * Tests counting objects by various queries.
      *
-     * @depends testInsert
+     * @param array $criteria Search criteria.
+     * @param array $params   Search params.
+     * @param array $expected Expected results.
+     *
+     * @depends      testInsert
      * @dataProvider provideFindCriteria
      */
     public function testCount(array $criteria, array $params, array $expected)
@@ -399,8 +419,8 @@ class MongoDbTest extends \PHPUnit_Framework_TestCase
         $store->getDatabase()
             ->hobbits
             ->expects($this->once())
-                ->method('count')
-                ->will($this->throwException(new \MongoException()));
+            ->method('count')
+            ->will($this->throwException(new \MongoException()));
 
         $store->count('hobbits');
     }
@@ -435,8 +455,8 @@ class MongoDbTest extends \PHPUnit_Framework_TestCase
         $store->getDatabase()
             ->hobbits
             ->expects($this->once())
-                ->method('update')
-                ->will($this->throwException(new \MongoException()));
+            ->method('update')
+            ->will($this->throwException(new \MongoException()));
 
         $store->update('hobbits');
     }
@@ -469,16 +489,14 @@ class MongoDbTest extends \PHPUnit_Framework_TestCase
         $store->getDatabase()
             ->hobbits
             ->expects($this->once())
-                ->method('remove')
-                ->will($this->throwException(new \MongoException()));
+            ->method('remove')
+            ->will($this->throwException(new \MongoException()));
 
         $store->remove('hobbits');
     }
 
     /**
      * Provides a Store stub for unit tests.
-     *
-     * @param array $methods List of methods to mock.
      */
     protected function provideStore()
     {
@@ -497,13 +515,17 @@ class MongoDbTest extends \PHPUnit_Framework_TestCase
 
         $database->hobbits = $collection;
 
-        $store = new Store([
-            'username' => getenv('MONGODB_USER'),
-            'password' => getenv('MONGODB_PASSWORD'),
-            'hostname' => getenv('MONGODB_HOST'),
-            'port' => getenv('MONGODB_PORT'),
-            'database' => getenv('MONGODB_DBNAME'),
-        ], new CriteriaParser(), $this->logger);
+        $store = new Store(
+            [
+                'username' => getenv('MONGODB_USER'),
+                'password' => getenv('MONGODB_PASSWORD'),
+                'hostname' => getenv('MONGODB_HOST'),
+                'port' => getenv('MONGODB_PORT'),
+                'database' => getenv('MONGODB_DBNAME'),
+            ],
+            new CriteriaParser(),
+            $this->logger
+        );
 
         $this->setPrivateProperty($store, 'client', $client);
         $this->setPrivateProperty($store, 'database', $database);

@@ -19,10 +19,10 @@ use Knit\Knit;
  * Repository is the centre of Knit and is the bridge between stores and PHP objects. Generally, you should only work
  * with repositories by injecting them in appropriate places.
  *
- * @package    Knit
- * @author     Michał Pałys-Dudek <michal@michaldudek.pl>
- * @copyright  2015 Michał Pałys-Dudek
- * @license    https://github.com/michaldudek/Knit/blob/master/LICENSE.md MIT License
+ * @package   Knit
+ * @author    Michał Pałys-Dudek <michal@michaldudek.pl>
+ * @copyright 2015 Michał Pałys-Dudek
+ * @license   https://github.com/michaldudek/Knit/blob/master/LICENSE.md MIT License
  */
 class Repository
 {
@@ -83,19 +83,23 @@ class Repository
         $objectClass = ltrim($objectClass, '\\');
 
         if (!class_exists($objectClass)) {
-            throw new \InvalidArgumentException(sprintf(
-                '%s cannot manage objects of class %s because it does not exist.',
-                __CLASS__,
-                $objectClass
-            ));
+            throw new \InvalidArgumentException(
+                sprintf(
+                    '%s cannot manage objects of class %s because it does not exist.',
+                    __CLASS__,
+                    $objectClass
+                )
+            );
         }
 
         if (!$dataMapper->supports($objectClass)) {
-            throw new \InvalidArgumentException(sprintf(
-                'The passed DataMapper (%s) cannot manage objects of class %s',
-                get_class($dataMapper),
-                $objectClass
-            ));
+            throw new \InvalidArgumentException(
+                sprintf(
+                    'The passed DataMapper (%s) cannot manage objects of class %s',
+                    get_class($dataMapper),
+                    $objectClass
+                )
+            );
         }
 
         $this->objectClass = $objectClass;
@@ -200,20 +204,24 @@ class Repository
     public function __call($method, array $arguments)
     {
         if (!isset($arguments[0])) {
-            throw new \InvalidArgumentException(sprintf(
-                'Missing 1st argument for method ::%s',
-                $method
-            ));
+            throw new \InvalidArgumentException(
+                sprintf(
+                    'Missing 1st argument for method ::%s',
+                    $method
+                )
+            );
         }
 
         $params = [];
         if (isset($arguments[1])) {
             if (!is_array($arguments[1])) {
-                throw new \InvalidArgumentException(sprintf(
-                    '2nd argument for method ::%s must be an array, %s given.',
-                    $method,
-                    Debugger::getType($arguments[1])
-                ));
+                throw new \InvalidArgumentException(
+                    sprintf(
+                        '2nd argument for method ::%s must be an array, %s given.',
+                        $method,
+                        Debugger::getType($arguments[1])
+                    )
+                );
             }
 
             $params = $arguments[1];
@@ -229,11 +237,13 @@ class Repository
             return $this->findOne([$property => $arguments[0]], $params);
         }
 
-        throw new \BadMethodCallException(sprintf(
-            'Call to undefined method %s::%s',
-            __CLASS__,
-            $method
-        ));
+        throw new \BadMethodCallException(
+            sprintf(
+                'Call to undefined method %s::%s',
+                __CLASS__,
+                $method
+            )
+        );
     }
 
     /**
@@ -401,9 +411,12 @@ class Repository
         }
 
         // select all objects for the right side of the join
-        $criteria = array_merge($criteria, [
-            $rightProperty => ObjectUtils::pluck($objects, $leftProperty)
-        ]);
+        $criteria = array_merge(
+            $criteria,
+            [
+                $rightProperty => ObjectUtils::pluck($objects, $leftProperty)
+            ]
+        );
         $withObjects = $withRepository->find($criteria);
         $withObjects = ObjectUtils::indexBy($withObjects, $rightProperty);
 
@@ -464,9 +477,12 @@ class Repository
         }
 
         // select all objects for the right side of the join
-        $criteria = array_merge($criteria, [
-            $rightProperty => ObjectUtils::pluck($objects, $leftProperty)
-        ]);
+        $criteria = array_merge(
+            $criteria,
+            [
+                $rightProperty => ObjectUtils::pluck($objects, $leftProperty)
+            ]
+        );
         $withObjects = $withRepository->find($criteria, $params);
         $withObjects = ObjectUtils::groupBy($withObjects, $rightProperty);
 
@@ -556,11 +572,13 @@ class Repository
     {
         $class = ltrim(get_class($object), '\\');
         if ($class !== $this->objectClass) {
-            throw new \LogicException(sprintf(
-                'Cannot use %s repository to manage objects of class %s',
-                $this->objectClass,
-                $class
-            ));
+            throw new \LogicException(
+                sprintf(
+                    'Cannot use %s repository to manage objects of class %s',
+                    $this->objectClass,
+                    $class
+                )
+            );
         }
 
         return true;

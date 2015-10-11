@@ -10,10 +10,10 @@ use Knit\Knit;
 /**
  * Tests Knit class.
  *
- * @package    Knit
- * @author     Michał Pałys-Dudek <michal@michaldudek.pl>
- * @copyright  2015 Michał Pałys-Dudek
- * @license    https://github.com/michaldudek/Knit/blob/master/LICENSE.md MIT License
+ * @package   Knit
+ * @author    Michał Pałys-Dudek <michal@michaldudek.pl>
+ * @copyright 2015 Michał Pałys-Dudek
+ * @license   https://github.com/michaldudek/Knit/blob/master/LICENSE.md MIT License
  *
  * @covers Knit\Knit
  */

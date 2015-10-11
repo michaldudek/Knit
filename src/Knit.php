@@ -141,11 +141,13 @@ class Knit
 
         // verify the repository class
         if (!Debugger::isExtending($repositoryClass, Repository::class, true)) {
-            throw new \RuntimeException(sprintf(
-                'An object repository class must extend %s, but %s given.',
-                Repository::class,
-                $repositoryClass
-            ));
+            throw new \RuntimeException(
+                sprintf(
+                    'An object repository class must extend %s, but %s given.',
+                    Repository::class,
+                    $repositoryClass
+                )
+            );
         }
 
         // create the repository and store it for the future

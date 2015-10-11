@@ -18,6 +18,9 @@ use Knit\DataMapper\ArraySerializable\ArraySerializer;
  */
 class ArraySerializerTest extends \PHPUnit_Framework_TestCase
 {
+    /**
+     * Tests `::supports()` method.
+     */
     public function testSupports()
     {
         $dataMapper = new ArraySerializer();
@@ -26,6 +29,9 @@ class ArraySerializerTest extends \PHPUnit_Framework_TestCase
         $this->assertFalse($dataMapper->supports(Fixtures\Orc::class));
     }
 
+    /**
+     * Tests `::identifier()` method.
+     */
     public function testIdentifier()
     {
         $dataMapper = new ArraySerializer();
@@ -33,6 +39,9 @@ class ArraySerializerTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals('id', $dataMapper->identifier(Fixtures\Hobbit::class));
     }
 
+    /**
+     * Tests `::identify()` method.
+     */
     public function testIdentify()
     {
         $dataMapper = new ArraySerializer();
@@ -43,6 +52,9 @@ class ArraySerializerTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals(1, $dataMapper->identify($hobbit));
     }
 
+    /**
+     * Tests `::identifyWith()` method.
+     */
     public function testIdentifyWith()
     {
         $dataMapper = new ArraySerializer();
@@ -54,6 +66,9 @@ class ArraySerializerTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals(2, $hobbit->getId());
     }
 
+    /**
+     * Tests `::fromArray()` method.
+     */
     public function testFromArray()
     {
         $dataMapper = new ArraySerializer();
@@ -63,17 +78,23 @@ class ArraySerializerTest extends \PHPUnit_Framework_TestCase
         $this->assertNull($hobbit->getHeight());
         $this->assertNull($hobbit->getSurname());
 
-        $dataMapper->fromArray($hobbit, [
-            'name' => 'Frodo',
-            'height' => 140,
-            'surname' => 'Baggins'
-        ]);
+        $dataMapper->fromArray(
+            $hobbit,
+            [
+                'name' => 'Frodo',
+                'height' => 140,
+                'surname' => 'Baggins'
+            ]
+        );
 
         $this->assertEquals('Frodo', $hobbit->getName());
         $this->assertEquals(140, $hobbit->getHeight());
         $this->assertEquals('Baggins', $hobbit->getSurname());
     }
 
+    /**
+     * Tests `::toArray()` method.
+     */
     public function testToArray()
     {
         $dataMapper = new ArraySerializer();
@@ -84,11 +105,14 @@ class ArraySerializerTest extends \PHPUnit_Framework_TestCase
         $hobbit->setHeight(140);
         $hobbit->setSurname('Baggins');
 
-        $this->assertEquals([
-            'id' => 1,
-            'name' => 'Frodo',
-            'height' => 140,
-            'surname' => 'Baggins'
-        ], $dataMapper->toArray($hobbit));
+        $this->assertEquals(
+            [
+                'id' => 1,
+                'name' => 'Frodo',
+                'height' => 140,
+                'surname' => 'Baggins'
+            ],
+            $dataMapper->toArray($hobbit)
+        );
     }
 }
