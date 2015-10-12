@@ -75,7 +75,7 @@ class MongoDbTest extends \PHPUnit_Framework_TestCase
             );
 
         } catch (StoreConnectionFailedException $e) {
-            $this->markTestSkipped('Could not connect to MongoDB: '. $e->getMessage());
+            $this->fail('Could not connect to MongoDB: '. $e->getMessage());
         }
     }
 

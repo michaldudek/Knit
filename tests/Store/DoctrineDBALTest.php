@@ -76,7 +76,7 @@ class DoctrineDBALTest extends \PHPUnit_Framework_TestCase
             );
 
         } catch (StoreConnectionFailedException $e) {
-            $this->markTestSkipped('Could not connect to MySQL: '. $e->getMessage());
+            $this->fail('Could not connect to MySQL: '. $e->getMessage());
         }
     }
 
