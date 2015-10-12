@@ -7,6 +7,10 @@ php:
 
 env:
     - DB=mysql MYSQL_USER=root MYSQL_PASSWORD="" MYSQL_HOST=127.0.0.1 MYSQL_PORT=3306 MYSQL_DBNAME=knit_test
+    - MONGODB=1 MONGODB_user="" MONGODB_PASSWORD="" MONGODB_HOST=127.0.0.1 MONGODB_PORT=27017 MONGODB_DBNAME=knit_test
+
+services:
+    - mongodb
 
 before_script:
     - make install
