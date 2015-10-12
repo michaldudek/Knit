@@ -2,7 +2,6 @@
 namespace Knit\Store\DoctrineDBAL;
 
 use Doctrine\DBAL\Query\Expression\CompositeExpression;
-use Doctrine\DBAL\Query\Expression\ExpressionBuilder;
 use Doctrine\DBAL\Query\QueryBuilder;
 
 use Knit\Criteria\CriteriaExpression;
