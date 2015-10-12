@@ -11,7 +11,7 @@ env:
 matrix:
     exclude:
         - php: 7.0
-            env: MONGODB=1 # no driver for php 7 yet
+          env: MONGODB=1 # no driver for php 7 yet
 
 services:
     - mongodb
