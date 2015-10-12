@@ -1,15 +1,15 @@
 <?php
-namespace Knit\Exceptions;
+namespace Knit\Tests\Fixtures;
 
 /**
- * Usually thrown when there was an error executing a query in persistent store.
+ * Fixture class.
  *
  * @package    Knit
- * @subpackage Exceptions
+ * @subpackage DataMapper
  * @author     Michał Pałys-Dudek <michal@michaldudek.pl>
  * @copyright  2015 Michał Pałys-Dudek
  * @license    https://github.com/michaldudek/Knit/blob/master/LICENSE.md MIT License
  */
-class StoreQueryErrorException extends \RuntimeException
+class Orc
 {
 }

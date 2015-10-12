@@ -1,325 +1,181 @@
 <?php
-/**
- * Knit ORM.
- * 
- * @package Knit
- * @author Michał Dudek <michal@michaldudek.pl>
- * 
- * @copyright Copyright (c) 2013, Michał Dudek
- * @license MIT
- */
 namespace Knit;
+
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 use MD\Foundation\Debug\Debugger;
 
-use Knit\Exceptions\ExtensionNotDefinedException;
-use Knit\Exceptions\RepositoryDefinedException;
-use Knit\Exceptions\StoreDefinedException;
-use Knit\Exceptions\NoStoreException;
-use Knit\Exceptions\ValidatorNotDefinedException;
-use Knit\Extensions\Guidable;
-use Knit\Extensions\Sluggable;
-use Knit\Extensions\Timestampable;
-use Knit\Entity\Repository;
-use Knit\Extensions\ExtensionInterface;
+use Knit\DataMapper\DataMapperInterface;
 use Knit\Store\StoreInterface;
-use Knit\Validators\AllowedValuesValidator;
-use Knit\Validators\EmailValidator;
-use Knit\Validators\EqualsValidator;
-use Knit\Validators\MaxLengthValidator;
-use Knit\Validators\MaxValidator;
-use Knit\Validators\MinLengthValidator;
-use Knit\Validators\MinValidator;
-use Knit\Validators\RequiredValidator;
-use Knit\Validators\TypeValidator;
-use Knit\Validators\UniqueValidator;
-use Knit\Validators\ValidatorInterface;
+use Knit\Repository;
 
+/**
+ * Main Knit class.
+ *
+ * @package   Knit
+ * @author    Michał Pałys-Dudek <michal@michaldudek.pl>
+ * @copyright 2015 Michał Pałys-Dudek
+ * @license   https://github.com/michaldudek/Knit/blob/master/LICENSE.md MIT License
+ */
 class Knit
 {
+    /**
+     * Order constants.
+     */
+    const ORDER_ASC = 1;
+    const ORDER_DESC = -1;
 
     /**
-     * Registry of all defined stores.
-     * 
-     * @var array
+     * Logic constants.
      */
-    protected $stores = array();
+    const LOGIC_OR = '__OR__';
+    const LOGIC_AND = '__AND__';
 
     /**
-     * Map of all instantiated repositories assigned to entity classes.
-     * 
-     * @var array
+     * Join options.
      */
-    protected $repositories = array();
+    const EXCLUDE_EMPTY = true;
 
     /**
-     * Map of entities and their custom store names.
-     * 
-     * @var array
+     * Event names.
      */
-    protected $entityStores = array();
+    const EVENT_WILL_READ = 'knit.will_read';
+    const EVENT_DID_READ = 'knit.did_read';
+    const EVENT_WILL_ADD = 'knit.will_add';
+    const EVENT_DID_ADD = 'knit.did_add';
+    const EVENT_WILL_UPDATE = 'knit.will_update';
+    const EVENT_DID_UPDATE = 'knit.did_update';
+    const EVENT_WILL_SAVE = 'knit.will_save';
+    const EVENT_DID_SAVE = 'knit.did_save';
+    const EVENT_WILL_DELETE = 'knit.will_delete';
+    const EVENT_DID_DELETE = 'knit.did_delete';
 
     /**
-     * Map of entities and their custom repository classes.
-     * 
-     * @var array
+     * Property key set on an object that is marked as stored.
      */
-    protected $entityRepositories = array();
+    const KEY_STORED = '__knitStored';
 
     /**
-     * Registry of all registered validators.
-     * 
+     * Default data store.
+     *
+     * @var StoreInterface
+     */
+    protected $defaultStore;
+
+    /**
+     * Default data mapper.
+     *
+     * @var DataMapperInterface
+     */
+    protected $defaultDataMapper;
+
+    /**
+     * Event dispatcher.
+     *
+     * @var EventDispatcherInterface
+     */
+    protected $eventDispatcher;
+
+    /**
+     * Registered repositories.
+     *
      * @var array
      */
-    protected $validators = array();
+    protected $repositories = [];
 
     /**
      * Constructor.
-     * 
-     * @param StoreInterface $defaultStore Default store that will be used with all repositories (if no other store defined).
-     * @param array $options [optional] Array of options.
+     *
+     * @param StoreInterface           $store           Default data store.
+     * @param DataMapperInterface      $dataMapper      Default data mapper.
+     * @param EventDispatcherInterface $eventDispatcher Event dispatcher.
      */
-    public function __construct(StoreInterface $defaultStore, array $options = array()) {
-        $this->registerStore('default', $defaultStore);
-
-        $options = array_merge(array(
-            'stores' => array()
-        ), $options);
-
-        // register other stores passed in options
-        foreach($options['stores'] as $storeName => $store) {
-            $this->registerStore($storeName, $store);
-        }
-
-        // register the default validators
-        $validators = array(
-            'allowedValues' => new AllowedValuesValidator(),
-            'email' => new EmailValidator(),
-            'equals' => new EqualsValidator(),
-            'maxLength' => new MaxLengthValidator(),
-            'max' => new MaxValidator(),
-            'minLength' => new MinLengthValidator(),
-            'min' => new MinValidator(),
-            'required' => new RequiredValidator(),
-            'type' => new TypeValidator(),
-            'unique' => new UniqueValidator()
-        );
-        foreach($validators as $name => $validator) {
-            $this->registerValidator($name, $validator);
-        }
-
-        // register the default extensions
-        $extensions = array(
-            'guidable' => new Guidable(),
-            'sluggable' => new Sluggable(),
-            'timestampable' => new Timestampable()
-        );
-        foreach($extensions as $name => $extension) {
-            $this->registerExtension($name, $extension);
-        }
+    public function __construct(
+        StoreInterface $store,
+        DataMapperInterface $dataMapper,
+        EventDispatcherInterface $eventDispatcher
+    ) {
+        $this->defaultStore = $store;
+        $this->defaultDataMapper = $dataMapper;
+        $this->eventDispatcher = $eventDispatcher;
     }
 
     /**
-     * Registers a repository for the given entity class.
-     * 
-     * @param string $entityClass Name of the entity class to use this repository with.
-     * @param Repository $repository Repository to register.
-     * 
-     * @throws RepositoryDefinedException When trying to overwrite already defined entity class repository.
-     */
-    public function registerRepository($entityClass, Repository $repository) {
-        if (isset($this->repositories[$entityClass])) {
-            throw new RepositoryDefinedException('Cannot overwrite already assigned repository. Tried to set repository for "'. $entityClass .'".');
-        }
-
-        $this->repositories[$entityClass] = $repository;
-    }
-
-    /*****************************************************
-     * SETTERS AND GETTERS
-     *****************************************************/
-    /**
-     * Registers an extension for future use.
-     * 
-     * @param string $name Name of the extension.
-     * @param ExtensionInterface $extension Extension instance.
-     */
-    public function registerExtension($name, ExtensionInterface $extension) {
-        $this->extensions[$name] = $extension;
-    }
-
-    /**
-     * Returns the requested extension.
-     * 
-     * @param string $name Name of the extension.
-     * @return ExtensionInterface
-     * 
-     * @throws ExtensionNotDefinedException When extension could not be found.
-     */
-    public function getExtension($name) {
-        if (!isset($this->extensions[$name])) {
-            throw new ExtensionNotDefinedException('Could not find extension registered under the name "'. $name .'".');
-        }
-
-        return $this->extensions[$name];
-    }
-
-    /**
-     * Registers a validator for future use.
-     * 
-     * @param string $name Name of the validator.
-     * @param ValidatorInterface $validator Validator instance.
-     */
-    public function registerValidator($name, ValidatorInterface $validator) {
-        $this->validators[$name] = $validator;
-    }
-
-    /**
-     * Returns the requested validator.
-     * 
-     * @param string $name Name of the validator.
-     * @return ValidatorInterface
-     * 
-     * @throws ValidatorNotDefinedException When validator could not be found.
-     */
-    public function getValidator($name) {
-        if (!isset($this->validators[$name])) {
-            throw new ValidatorNotDefinedException('Could not find validator registered under the name "'. $name .'".');
-        }
-
-        return $this->validators[$name];
-    }
-
-    /**
-     * Registers a persistent store to be later used with repositories.
-     * 
-     * @param string $name Name of the store to register. Has to be unique.
-     * @param StoreInterface $store Persistent store to be registered.
-     * 
-     * @throws StoreDefinedException When trying to overwrite already defined store.
-     */
-    public function registerStore($name, StoreInterface $store) {
-        if (isset($this->stores[$name])) {
-            throw new StoreDefinedException('Cannot overwrite already defined store. Tried to set store "'. $name .'".');
-        }
-
-        $this->stores[$name] = $store;
-    }
-
-    /**
-     * Returns store registered under the given name.
-     * 
-     * @param string $name [optional] Name of the store to get. If no name given then default store will be returned.
-     * @return StoreInterface
-     * 
-     * @throws NoStoreException When no such store is defined.
-     */
-    public function getStore($name = 'default') {
-        if (!isset($this->stores[$name])) {
-            throw new NoStoreException('No store called "'. $name .'" defined.');
-        }
-
-        return $this->stores[$name];
-    }
-
-    /**
-     * Returns name of a registered store that should be used with the given entity.
-     * 
-     * If no store for entity has been previously registered then it will return 'default'.
-     * 
-     * @param string $entityClass Class name of the entity.
-     * @return string
-     */
-    public function getStoreNameForEntity($entityClass) {
-        return isset($this->entityStores[$entityClass]) ? $this->entityStores[$entityClass] : 'default';
-    }
-
-    /**
-     * Sets a registered store name that should be used with the given entity.
-     * 
-     * @param string $entityClass Class name of the entity.
-     * @param string $store Name of a registered store.
-     * 
-     * @throws StoreDefinedException When trying to overwrite a store already defined for an entity.
-     * @throws NoStoreException When no such store has been defined yet.
-     */
-    public function setStoreNameForEntity($entityClass, $store) {
-        if (isset($this->entityStores[$entityClass])) {
-            throw new StoreDefinedException('Cannot overwrite already defined store for an entity. Tried to set store called "'. $store .'" for "'. $entityClass .'".');
-        }
-
-        // store with this name has to be defined as well
-        if (!isset($this->stores[$store])) {
-            throw new NoStoreException('No store called "'. $store .'" defined. Register it in Knit before setting it for an entity.');
-        }
-
-        $this->entityStores[$entityClass] = $store;
-    }
-
-    /**
-     * Sets repository class name for the given entity.
-     * 
-     * @param string $entityClass Class name of the entity.
-     * @param string $repositoryClass Class name of the repository for that entity.
-     * 
-     * @throws RepositoryDefinedException When repository class has already been defined for this entity.
-     */
-    public function setRepositoryClassForEntity($entityClass, $repositoryClass) {
-        if (isset($this->entityRepositories[$entityClass])) {
-            throw new RepositoryDefinedException('Cannot overwrite already defined repository for an entity. Tried to set repository "'. $repositoryClass .'" for "'. $entityClass .'".');
-        }
-
-        $this->entityRepositories[$entityClass] = $repositoryClass;
-    }
-
-    /** 
-     * Returns repository class for the given entity class.
-     * 
-     * @param string $entityClass Class name of the entity.
-     * @return string
-     */
-    public function getRepositoryClassForEntity($entityClass) {
-        // check if there was a repository class for this entity defined
-        if (isset($this->entityRepositories[$entityClass])) {
-            return $this->entityRepositories[$entityClass];
-        }
-
-        // look for repository by appending 'Repository' to the end of class name
-        // or if not found, use the generic Repository class
-        return class_exists('\\'. $entityClass .'Repository') ? $entityClass .'Repository' : 'Knit\Entity\Repository';
-    }
-
-    /**
-     * Returns repository for the given entity.
-     * 
-     * @param string|object $entityClass Class name (full, with namespace) of the entity, or an entity.
+     * Gets a repository for the given object class.
+     *
+     * @param string                   $objectClass     Class name of the object that will be managed by the repository.
+     * @param string                   $collection      Name of the collection / table in which objects are stored in
+     *                                                  the store.
+     * @param StoreInterface|null      $store           [optional] Store in which the objects are stored,
+     *                                                  if not the default.
+     * @param DataMapperInterface|null $dataMapper      [optional] DataMapper for the repository if not the default.
+     * @param string|null              $repositoryClass [optional] Custom repository class.
+     *
      * @return Repository
-     * 
-     * @throws \RuntimeException When the entity repository doesn't extend Knit\Entity\Repository class.
      */
-    public function getRepository($entityClass) {
-        $entityClass = is_object($entityClass) ? Debugger::getClass($entityClass) : $entityClass;
-            
-        if (isset($this->repositories[$entityClass])) {
-            return $this->repositories[$entityClass];
+    public function getRepository(
+        $objectClass,
+        $collection,
+        StoreInterface $store = null,
+        DataMapperInterface $dataMapper = null,
+        $repositoryClass = null
+    ) {
+        $objectClass = ltrim($objectClass, '\\');
+
+        // if this repository already created then just return it
+        if (isset($this->repositories[$objectClass])) {
+            return $this->repositories[$objectClass];
         }
 
-        $repositoryClass = $this->getRepositoryClassForEntity($entityClass);
+        // fill defaults if necessary
+        $store = $store === null ? $this->defaultStore : $store;
+        $dataMapper = $dataMapper === null ? $this->defaultDataMapper : $dataMapper;
 
-        // must extend Repository
-        if (!Debugger::isExtending($repositoryClass, 'Knit\Entity\Repository', true)) {
-            throw new \RuntimeException('Entity repository "'. $repositoryClass .'" for "'. $entityClass .'" must extend "Knit\Entity\Repository".');
-        }
+        $repositoryClass = $this->findRepositoryClass($objectClass, $repositoryClass);
 
-        // get store for this repository
-        $entityStore = $this->getStoreNameForEntity($entityClass);
-        $store = $this->getStore($entityStore);
+        // create the repository and store it for the future
+        $repository = new $repositoryClass(
+            $objectClass,
+            $collection,
+            $store,
+            $dataMapper,
+            $this->eventDispatcher
+        );
 
-        // instantiate it
-        $repository = new $repositoryClass($entityClass, $store, $this);
-
-        $this->registerRepository($entityClass, $repository);
+        $this->repositories[$objectClass] = $repository;
         return $repository;
     }
 
+    /**
+     * Attempts to find and verify a repository class for the given object class.
+     *
+     * @param string $objectClass     Object class.
+     * @param string $repositoryClass [optional] Suggested repository class, if any.
+     *
+     * @return string
+     */
+    protected function findRepositoryClass($objectClass, $repositoryClass = null)
+    {
+        // figure out a repository class if none given
+        if ($repositoryClass === null) {
+            $repositoryClass = $objectClass .'Repository';
+            if (!class_exists($repositoryClass)) {
+                // return already and don't bother checking, as we know it
+                return Repository::class;
+            }
+        }
+
+        // verify the repository class
+        if (!Debugger::isExtending($repositoryClass, Repository::class, true)) {
+            throw new \RuntimeException(
+                sprintf(
+                    'An object repository class must extend %s, but %s given.',
+                    Repository::class,
+                    $repositoryClass
+                )
+            );
+        }
+
+        return $repositoryClass;
+    }
 }

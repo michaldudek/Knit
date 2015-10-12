@@ -1,113 +1,69 @@
 <?php
-/**
- * Interface that must be implemented by any persistent store driver used with Knit ORM.
- * 
- * @package Knit
- * @subpackage Store
- * @author Michał Dudek <michal@michaldudek.pl>
- * 
- * @copyright Copyright (c) 2013, Michał Dudek
- * @license MIT
- */
 namespace Knit\Store;
 
-use Psr\Log\LoggerInterface;
-
 use Knit\Criteria\CriteriaExpression;
-use Knit\Entity\Repository;
 
+/**
+ * Persistent store driver interface.
+ *
+ * @package    Knit
+ * @subpackage Store
+ * @author     Michał Pałys-Dudek <michal@michaldudek.pl>
+ * @copyright  2015 Michał Pałys-Dudek
+ * @license    https://github.com/michaldudek/Knit/blob/master/LICENSE.md MIT License
+ */
 interface StoreInterface
 {
-
     /**
-     * A "callback" method that is called by a repository after the store has been bound to it.
-     * 
-     * It can be used to set some custom settings on the repository that are store specific.
-     * 
-     * @param Repository $repository The repository to which this store has been bound.
-     */
-    public function didBindToRepository(Repository $repository);
-
-    /**
-     * Finds objects within a collection.
-     * 
-     * The $criteria array should conform to parsing of criteria (see elsewhere).
-     * 
-     * Should return array of results.
-     * 
+     * Finds items within a collection.
+     *
      * @param string $collection Name of the collection in which to look for.
-     * @param CriteriaExpression $criteria [optional] Criteria on which to find.
-     * @param array $params [optional] Other parameters, like orderBy or orderDir.
+     * @param CriteriaExpression $criteria [optional] Lookup criteria.
+     * @param array $params [optional] Other parameters, like `orderBy` or `orderDir`.
+     *
      * @return array
      */
-    public function find($collection, CriteriaExpression $criteria = null, array $params = array());
+    public function find($collection, CriteriaExpression $criteria = null, array $params = []);
 
     /**
-     * Counts objects within a collection.
-     * 
-     * The $criteria array should conform to parsing of criteria (see elsewhere).
-     * 
+     * Counts items within a collection.
+     *
+     * MUST return either an integer or an array of integers if used `groupBy` param.
+     *
      * @param string $collection Name of the collection in which to look for.
-     * @param CriteriaExpression $criteria [optional] Criteria on which to count.
-     * @param array $params [optional] Other parameters, like orderBy or orderDir.
-     * @return int|array Either an int or an array of ints if used groupBy param.
+     * @param CriteriaExpression $criteria [optional] Lookup criteria.
+     * @param array $params [optional] Other parameters, like `orderBy` or `orderDir`.
+     *
+     * @return integer|array
      */
-    public function count($collection, CriteriaExpression $criteria = null, array $params = array());
+    public function count($collection, CriteriaExpression $criteria = null, array $params = []);
 
     /**
-     * Creates an object with the given properties in the persistent store.
-     * 
+     * Persists a new item in the collection.
+     *
+     * MUST return an identifier of the created object.
+     *
      * @param string $collection Name of the collection in which to create new object.
      * @param array $properties Properties of the new object.
-     * @return int|string ID of the created object.
+     *
+     * @return integer|string
      */
     public function add($collection, array $properties);
 
     /**
-     * Updates an object matching the $criteria with the given $properties.
-     * 
-     * @param string $collection Name of the collection in which to update.
-     * CriteriaExpression $criteria [optional] Criteria on which to update.
-     * @param array $properties Properties of the new object.
-     */
-    public function update($collection, CriteriaExpression $criteria = null, array $properties);
-
-    /**
-     * Deletes objects with the given $criteria from the collection.
-     * 
-     * @param string $collection Name of the collection from which to delete objects.
-     * @param CriteriaExpression $criteria [optional] Criteria on which to delete.
-     */
-    public function delete($collection, CriteriaExpression $criteria = null);
-
-    /**
-     * Should return information about the collection structure.
-     * 
-     * The array returned should conform to the structure array definition.
-     * 
-     * @param string $collection Name of the collection.
-     * @return array
-     */
-    public function structure($collection);
-
-    /**
-     * Ensures that the given index is defined in the store and if not it creates it.
+     * Updates items in the collection based on the given criteria.
      *
-     * @param  string $collection Name of the collection to index.
-     * @param  array  $index Index definition array.
-     * @param  string $name  [optional] Optional name of the index.
-     * @return boolean
+     * @param string $collection Name of the collection in which to update.
+     * @param CriteriaExpression $criteria [optional] Lookup criteria.
+     * @param array $properties Properties to be updated.
      */
-    public function ensureIndex($collection, array $index, $name = null);
+    public function update($collection, CriteriaExpression $criteria = null, array $properties = []);
 
-    /*****************************************************
-     * SETTERS AND GETTERS
-     *****************************************************/
     /**
-     * Sets the store logger.
-     * 
-     * @param LoggerInterface $logger Must implement PSR-3 LoggerInterface.
+     * Removes items from the collection based on the given criteria.
+     *
+     * @param string $collection Name of the collection from which to remove items.
+     * @param CriteriaExpression $criteria [optional] Lookup criteria.
      */
-    public function setLogger(LoggerInterface $logger);
-
+    public function remove($collection, CriteriaExpression $criteria = null);
 }

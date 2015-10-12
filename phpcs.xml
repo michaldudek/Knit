@@ -14,5 +14,8 @@
         <exclude name="PEAR.Commenting.FunctionComment.MissingReturn"/>
         <exclude name="PEAR.Commenting.FunctionComment.SpacingAfterParamType"/>
         <exclude name="PEAR.Commenting.FunctionComment.SpacingAfterParamName"/>
+        <exclude name="PEAR.NamingConventions.ValidFunctionName.PrivateNoUnderscore"/>
+        <exclude name="PEAR.NamingConventions.ValidVariableName.PrivateNoUnderscore"/>
+        <exclude name="PEAR.WhiteSpace.ScopeIndent.IncorrectExact"/>
     </rule>
 </ruleset>

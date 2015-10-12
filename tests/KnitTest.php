@@ -1,252 +1,139 @@
 <?php
 namespace Knit\Tests;
 
-use Knit\Tests\Fixtures\Auto;
-use Knit\Tests\Fixtures\NotExtending;
-use Knit\Tests\Fixtures\Predefined;
-use Knit\Tests\Fixtures\Standard;
-
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
+use Knit\DataMapper\ArraySerializable\ArraySerializer;
+use Knit\Store\StoreInterface;
+use Knit\Repository;
 use Knit\Knit;
 
 /**
- * @covers \Knit\Knit
+ * Tests Knit class.
+ *
+ * @package   Knit
+ * @author    Michał Pałys-Dudek <michal@michaldudek.pl>
+ * @copyright 2015 Michał Pałys-Dudek
+ * @license   https://github.com/michaldudek/Knit/blob/master/LICENSE.md MIT License
+ *
+ * @covers Knit\Knit
  */
 class KnitTest extends \PHPUnit_Framework_TestCase
 {
-
-    public function testConstructingAndRegisteringStores() {
-        $defaultStore = $this->getMock('Knit\Store\StoreInterface');
-        $anotherStore = $this->getMock('Knit\Store\StoreInterface');
-        $dummyStore = $this->getMock('Knit\Store\StoreInterface');
-        $knit = new Knit($defaultStore, array(
-            'stores' => array(
-                'another' => $anotherStore,
-                'dummy' => $dummyStore
-            )
-        ));
-
-        $this->assertSame($defaultStore, $knit->getStore('default'));
-        $this->assertSame($anotherStore, $knit->getStore('another'));
-        $this->assertSame($dummyStore, $knit->getStore('dummy'));
-
-        // make sure all default validators are registered
-        $ns = 'Knit\Validators\\';
-        $validators = array(
-            'equals' => $ns .'EqualsValidator',
-            'maxLength' => $ns .'MaxLengthValidator',
-            'max' => $ns .'MaxValidator',
-            'minLength' => $ns .'MinLengthValidator',
-            'min' => $ns .'MinValidator',
-            'required' => $ns .'RequiredValidator',
-            'type' => $ns .'TypeValidator',
-        );
-        foreach($validators as $name => $class) {
-            $this->assertInstanceOf($class, $knit->getValidator($name));
-        }
-
-        // make sure all default extensions are registered
-        $ns = 'Knit\Extensions\\';
-        $extensions = array(
-            'sluggable' => $ns .'Sluggable',
-            'timestampable' => $ns .'Timestampable'
-        );
-        foreach($extensions as $name => $class) {
-            $this->assertInstanceOf($class, $knit->getExtension($name));
-        }
-
-        return $knit;
-    }
-
-    public function testRegisteringAndGettingStores() {
-        $knit = $this->testConstructingAndRegisteringStores();
-
-        $testStore = $this->getMock('Knit\Store\StoreInterface');
-        $knit->registerStore('test', $testStore);
-
-        $this->assertSame($testStore, $knit->getStore('test'));
-    }
-
     /**
-     * @expectedException \Knit\Exceptions\StoreDefinedException
+     * Tests getting a repository with default settings.
      */
-    public function testOverwritingStore() {
-        $knit = $this->testConstructingAndRegisteringStores();
+    public function testGetRepository()
+    {
+        $mocks = $this->provideMocks();
+        $knit = new Knit($mocks['store'], $mocks['dataMapper'], $mocks['eventDispatcher']);
 
-        $dummyStore = $this->getMock('Knit\Store\StoreInterface');
-        $knit->registerStore('dummy', $dummyStore);
+        $objectClass = Fixtures\Hobbit::class;
+        $collection = 'hobbits';
+
+        $repository = $knit->getRepository($objectClass, $collection);
+
+        $this->assertInstanceOf(Repository::class, $repository);
+
+        // assert all data have been correctly passed (defaults)
+        $this->assertEquals($objectClass, $repository->getObjectClass());
+        $this->assertEquals($collection, $repository->getCollection());
+        $this->assertSame($mocks['store'], $repository->getStore());
+        $this->assertSame($mocks['dataMapper'], $repository->getDataMapper());
+        $this->assertSame($mocks['eventDispatcher'], $repository->getEventDispatcher());
+
+        // assert that for second time we will get the same instance
+        // (even if class name is prefix with namespace separator)
+        $this->assertSame($repository, $knit->getRepository('\\'. $objectClass, $collection));
     }
 
     /**
-     * @expectedException \Knit\Exceptions\NoStoreException
+     * Tests getting a repository with custom store and data mapper.
      */
-    public function testGettingUndefinedStore() {
-        $knit = $this->testConstructingAndRegisteringStores();
+    public function testGetRepositoryWithCustomSettings()
+    {
+        $defaultMocks = $this->provideMocks();
+        $knit = new Knit($defaultMocks['store'], $defaultMocks['dataMapper'], $defaultMocks['eventDispatcher']);
 
-        $knit->getStore('undefined');
-    }
+        $mocks = $this->provideMocks();
 
-    public function testRegisteringRepositories() {
-        $knit = $this->testConstructingAndRegisteringStores();
+        $objectClass = Fixtures\Hobbit::class;
+        $collection = 'hobbits';
 
-        $contactRepository = $this->getMockBuilder('Knit\Entity\Repository')
-            ->disableOriginalConstructor()
-            ->getMock();
+        $repository = $knit->getRepository($objectClass, $collection, $mocks['store'], $mocks['dataMapper']);
 
-        $messageRepository = $this->getMockBuilder('Knit\Entity\Repository')
-            ->disableOriginalConstructor()
-            ->getMock();
-
-        $knit->registerRepository('Contact', $contactRepository);
-        $knit->registerRepository('Message', $messageRepository);
-
-        $this->assertSame($contactRepository, $knit->getRepository('Contact'));
-        $this->assertSame($messageRepository, $knit->getRepository('Message'));
+        $this->assertNotSame($defaultMocks['store'], $repository->getStore());
+        $this->assertNotSame($defaultMocks['dataMapper'], $repository->getDataMapper());
+        $this->assertSame($mocks['store'], $repository->getStore());
+        $this->assertSame($mocks['dataMapper'], $repository->getDataMapper());
     }
 
     /**
-     * @expectedException \Knit\Exceptions\RepositoryDefinedException
+     * Tests getting a repository of an auto resolved class.
      */
-    public function testOverwritingRepository() {
-        $knit = $this->testConstructingAndRegisteringStores();
+    public function testGetRepositoryWithAutoResolvedClass()
+    {
+        $mocks = $this->provideMocks();
+        $knit = new Knit($mocks['store'], $mocks['dataMapper'], $mocks['eventDispatcher']);
 
-        $contactRepository = $this->getMockBuilder('Knit\Entity\Repository')
-            ->disableOriginalConstructor()
-            ->getMock();
+        $objectClass = Fixtures\Elf::class;
+        $collection = 'elves';
 
-        $knit->registerRepository('Contact', $contactRepository);
+        $repository = $knit->getRepository($objectClass, $collection);
 
-        $invalidRepository = $this->getMockBuilder('Knit\Entity\Repository')
-            ->disableOriginalConstructor()
-            ->getMock();
-
-        $knit->registerRepository('Contact', $invalidRepository);
-    }
-
-    public function testRegisteringAndGettingExtensions() {
-        $knit = $this->testConstructingAndRegisteringStores();
-
-        $extensionOne = $this->getMock('Knit\Extensions\ExtensionInterface');
-        $extensionTwo = $this->getMock('Knit\Extensions\ExtensionInterface');
-
-        $knit->registerExtension('one', $extensionOne);
-        $knit->registerExtension('two', $extensionTwo);
-
-        $this->assertSame($extensionOne, $knit->getExtension('one'));
-        $this->assertSame($extensionTwo, $knit->getExtension('two'));
+        $this->assertInstanceOf(Fixtures\ElfRepository::class, $repository);
     }
 
     /**
-     * @expectedException \Knit\Exceptions\ExtensionNotDefinedException
+     * Tests getting a repository of a custom defined class.
      */
-    public function testGettingUndefinedExtension() {
-        $knit = $this->testConstructingAndRegisteringStores();
+    public function testGetRepositoryWithCustomClass()
+    {
+        $mocks = $this->provideMocks();
+        $knit = new Knit($mocks['store'], $mocks['dataMapper'], $mocks['eventDispatcher']);
 
-        $knit->getExtension('undefined');
-    }
+        $objectClass = Fixtures\ElvenGift::class;
+        $collection = 'gifts';
 
-    public function testRegisteringAndGettingValidators() {
-        $knit = $this->testConstructingAndRegisteringStores();
+        $repository = $knit->getRepository($objectClass, $collection, null, null, Fixtures\ElvenGiftsStash::class);
 
-        $minLengthValidator = $this->getMock('Knit\Validators\ValidatorInterface');
-        $typeValidator = $this->getMock('Knit\Validators\ValidatorInterface');
-
-        $knit->registerValidator('minLength', $minLengthValidator);
-        $knit->registerValidator('type', $typeValidator);
-
-        $this->assertSame($minLengthValidator, $knit->getValidator('minLength'));
-        $this->assertSame($typeValidator, $knit->getValidator('type'));
+        $this->assertInstanceOf(Fixtures\ElvenGiftsStash::class, $repository);
     }
 
     /**
-     * @expectedException \Knit\Exceptions\ValidatorNotDefinedException
-     */
-    public function testGettingUndefinedValidators() {
-        $knit = $this->testConstructingAndRegisteringStores();
-
-        $knit->getValidator('undefined');
-    }
-
-    public function testGettingAndSettingStoreNameForEntity() {
-        $knit = $this->testConstructingAndRegisteringStores();
-
-        $knit->setStoreNameForEntity('Contact', 'default');
-        $knit->setStoreNameForEntity('Person', 'another');
-        $knit->setStoreNameForEntity('Dummy', 'dummy');
-
-        $this->assertEquals('default', $knit->getStoreNameForEntity('Contact'));
-        $this->assertEquals('another', $knit->getStoreNameForEntity('Person'));
-        $this->assertEquals('dummy', $knit->getStoreNameForEntity('Dummy'));
-        $this->assertEquals('default', $knit->getStoreNameForEntity('Undefined'));
-        $this->assertEquals('default', $knit->getStoreNameForEntity('Task'));
-    }
-
-    /**
-     * @expectedException \Knit\Exceptions\StoreDefinedException
-     */
-    public function testOverwritingStoreNameForEntity() {
-        $knit = $this->testConstructingAndRegisteringStores();
-
-        $knit->setStoreNameForEntity('Contact', 'another');
-        $knit->setStoreNameForEntity('Contact', 'default');
-    }
-
-    /**
-     * @expectedException \Knit\Exceptions\NoStoreException
-     */
-    public function testSettingUndefinedStoreNameForEntity() {
-        $knit = $this->testConstructingAndRegisteringStores();
-
-        $knit->setStoreNameForEntity('Contact', 'undefined');
-    }
-
-    public function testSettingAndGettingRepositoryClassForEntity() {
-        $knit = $this->testConstructingAndRegisteringStores();
-
-        $knit->setRepositoryClassForEntity('Person', 'PersonRepository');
-        $knit->setRepositoryClassForEntity('Contact', 'Person\ContactRepository');
-        $knit->setRepositoryClassForEntity('Message', 'EverythingRepository');
-
-        $this->assertEquals('PersonRepository', $knit->getRepositoryClassForEntity('Person'));
-        $this->assertEquals('Person\ContactRepository', $knit->getRepositoryClassForEntity('Contact'));
-        $this->assertEquals('EverythingRepository', $knit->getRepositoryClassForEntity('Message'));
-        $this->assertEquals('Knit\Entity\Repository', $knit->getRepositoryClassForEntity('Undefined'));
-        $this->assertEquals('Knit\Tests\Fixtures\DummyRepository', $knit->getRepositoryClassForEntity('Knit\Tests\Fixtures\Dummy'));
-    }
-
-    /**
-     * @expectedException \Knit\Exceptions\RepositoryDefinedException
-     */
-    public function testOverwritingRepositoryClassForEntity() {
-        $knit = $this->testConstructingAndRegisteringStores();
-
-        $knit->setRepositoryClassForEntity('Person', 'PersonRepository');
-        $knit->setRepositoryClassForEntity('Person', 'GeneralRepository');
-    }
-
-    public function testGettingRepository() {
-        $knit = $this->testConstructingAndRegisteringStores();
-
-        // get default repository
-        $repository = $knit->getRepository(Standard::__class());
-        $this->assertEquals('Knit\Entity\Repository', get_class($repository));
-
-        // get predefined class
-        $knit->setRepositoryClassForEntity(Predefined::__class(), 'Knit\Tests\Fixtures\DummyRepository');
-        $predefinedRepository = $knit->getRepository(Predefined::__class());
-        $this->assertEquals('Knit\Tests\Fixtures\DummyRepository', get_class($predefinedRepository));
-
-        // get autonamed class
-        $autoRepository = $knit->getRepository(Auto::__class());
-        $this->assertEquals('Knit\Tests\Fixtures\AutoRepository', get_class($autoRepository));
-    }
-
-    /**
+     * Tests getting a repository when the passed repository class is invalid.
+     *
      * @expectedException \RuntimeException
      */
-    public function testGettingInvalidRepository() {
-        $knit = $this->testConstructingAndRegisteringStores();
+    public function testGetRepositoryWithCustomInvalidClass()
+    {
+        $mocks = $this->provideMocks();
+        $knit = new Knit($mocks['store'], $mocks['dataMapper'], $mocks['eventDispatcher']);
 
-        $repository = $knit->getRepository(NotExtending::__class());
+        $objectClass = Fixtures\Orc::class;
+        $collection = 'orcs';
+
+        $knit->getRepository($objectClass, $collection, null, null, Fixtures\Mordor::class);
     }
 
+    /**
+     * Provides mock objects.
+     *
+     * @return array
+     */
+    protected function provideMocks()
+    {
+        $mocks = [];
+
+        $mocks['store'] = $this->getMockBuilder(StoreInterface::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+
+        $mocks['dataMapper'] = new ArraySerializer();
+
+        $mocks['eventDispatcher'] = $this->getMockBuilder(EventDispatcherInterface::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+
+        return $mocks;
+    }
 }
