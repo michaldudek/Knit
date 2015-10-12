@@ -1,7 +1,7 @@
 {
     "name": "michaldudek/knit",
-    "description": "Simple repository-centric data mapper.",
-    "keywords": ["orm", "odm", "datamapper", "database", "mysql", "mongo"],
+    "description": "Knit ties your PHP objects with your database of choice in a simple way.",
+    "keywords": ["orm", "odm", "datamapper", "database", "mysql", "mongo", "pgsql", "postgresql", "popo"],
     "license": "MIT",
     "authors": [
         {
