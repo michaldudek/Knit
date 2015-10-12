@@ -3,17 +3,21 @@ php:
     - 7.0
     - 5.6
     - 5.5
-    - hhvm
 
 env:
     - DB=mysql MYSQL_USER=root MYSQL_PASSWORD="" MYSQL_HOST=127.0.0.1 MYSQL_PORT=3306 MYSQL_DBNAME=knit_test
     - MONGODB=1 MONGODB_user="" MONGODB_PASSWORD="" MONGODB_HOST=127.0.0.1 MONGODB_PORT=27017 MONGODB_DBNAME=knit_test
 
+matrix:
+    exclude:
+        - php: 7.0
+            env: MONGODB=1 # no driver for php 7 yet
+
 services:
     - mongodb
 
 before_script:
-    - 'if [ -z "$MYSQL_DBNAME" ]; then echo "${MYSQL_DBNAME} is already created"; else mysql -e "CREATE DATABASE IF NOT EXISTS ${MYSQL_DBNAME};" -u${MYSQL_USER} -p${MYSQL_PASSWORD}; echo "Created ${MYSQL_DBNAME}"; fi;'
+    - 'if [ -z "$MYSQL_DBNAME" ]; then echo "${MYSQL_DBNAME} is already created"; else mysql -e "CREATE DATABASE IF NOT EXISTS ${MYSQL_DBNAME};"; echo "Created ${MYSQL_DBNAME}"; fi;'
     - echo "extension = mongo.so" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini
     - make install
 
