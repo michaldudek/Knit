@@ -70,7 +70,7 @@ composer_update:
 
 # run the PHPUnit tests
 phpunit:
-	php ./vendor/bin/phpunit --verbose
+	php ./vendor/bin/phpunit
 
 phpunit_report:
 	php ./vendor/bin/phpunit --coverage-html resources/coverage

@@ -101,6 +101,17 @@ done
 
 SCRIPT
 
+    $create_database = <<SCRIPT
+if [ -z "$MYSQL_DBNAME" ];
+then
+    echo "${MYSQL_DBNAME} is already created";
+else
+    mysql -e "CREATE DATABASE IF NOT EXISTS ${MYSQL_DBNAME};" -u${MYSQL_USER} -p${MYSQL_PASSWORD};
+    echo "Created ${MYSQL_DBNAME}";
+fi;
+SCRIPT
+
     config.vm.provision "shell", inline: $install_env_vars, privileged: false
+    config.vm.provision "sheel", inline: $create_database
 
 end

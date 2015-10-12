@@ -13,6 +13,7 @@ services:
     - mongodb
 
 before_script:
+    - 'if [ -z "$MYSQL_DBNAME" ]; then echo "${MYSQL_DBNAME} is already created"; else mysql -e "CREATE DATABASE IF NOT EXISTS ${MYSQL_DBNAME};" -u${MYSQL_USER} -p${MYSQL_PASSWORD}; echo "Created ${MYSQL_DBNAME}"; fi;'
     - echo "extension = mongo.so" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini
     - make install
 
