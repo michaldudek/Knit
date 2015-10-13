@@ -20,6 +20,8 @@ did update, did remove).
 - Easy programmatic joins (which means joins between stores).
 - Swappable data mappers.
 
+Check [KnitBundle](https://github.com/michaldudek/KnitBundle) for Symfony2 integration.
+
 # Quick Demo:
 
     <?php
