@@ -30,6 +30,13 @@ class CriteriaExpression
     protected $criteria = [];
 
     /**
+     * Raw criteria based on which this object was created.
+     *
+     * @var array
+     */
+    protected $raw = [];
+
+    /**
      * Constructor.
      *
      * @param array $criteria [optional] Criteria array that will be converted into proper expressions.
@@ -51,6 +58,7 @@ class CriteriaExpression
         }
 
         $this->logic = $logic;
+        $this->raw = $criteria;
 
         // now parse the given criteria rows
         foreach ($criteria as $key => $value) {
@@ -91,5 +99,15 @@ class CriteriaExpression
     public function getCriteria()
     {
         return $this->criteria;
+    }
+
+    /**
+     * Returns the raw criteria based on which this object was created.
+     *
+     * @return array
+     */
+    public function getRaw()
+    {
+        return $this->raw;
     }
 }
