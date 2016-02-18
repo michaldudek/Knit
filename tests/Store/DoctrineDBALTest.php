@@ -317,7 +317,7 @@ class DoctrineDBALTest extends \PHPUnit_Framework_TestCase
         $this->repository->save($hobbit);
 
         $updatedHobbit = $this->repository->findOneByName('Frodo');
-        $this->assertEquals('Bagginsses', $hobbit->getSurname());
+        $this->assertEquals('Bagginsses', $updatedHobbit->getSurname());
     }
 
     /**
