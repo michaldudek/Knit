@@ -10,21 +10,21 @@ use Knit\Tests\Fixtures;
 use Knit\Criteria\CriteriaExpression;
 use Knit\DataMapper\ArraySerializable\ArraySerializer;
 use Knit\Exceptions\StoreConnectionFailedException;
-use Knit\Store\DoctrineDBAL\CriteriaParser;
-use Knit\Store\DoctrineDBAL\Store;
+use Knit\Store\Memory\CriteriaMatcher;
+use Knit\Store\Memory\Store;
 use Knit\Repository;
 use Knit\Knit;
 
 /**
- * Tests DoctrineDBAL store.
+ * Tests Memory store.
  *
  * @package    Knit
  * @subpackage Store
  * @author     Michał Pałys-Dudek <michal@michaldudek.pl>
- * @copyright  2015 Michał Pałys-Dudek
+ * @copyright  2016 Michał Pałys-Dudek
  * @license    https://github.com/michaldudek/Knit/blob/master/LICENSE.md MIT License
  */
-class DoctrineDBALTest extends \PHPUnit_Framework_TestCase
+class MemoryTest extends \PHPUnit_Framework_TestCase
 {
     /**
      * Repository used for the test.
@@ -45,74 +45,24 @@ class DoctrineDBALTest extends \PHPUnit_Framework_TestCase
      */
     public function setUp()
     {
-        // DB=mysql in travis
-        // MYSQL=1 in the test Vagrant VM
-        if (getenv('DB') !== 'mysql' && getenv('MYSQL') != '1') {
-            $this->markTestSkipped('Not testing MySQL.');
-        }
+        $this->logger = new Fixtures\TestLogger();
 
-        try {
-            $this->logger = new Fixtures\TestLogger();
+        $store = new Store(
+            new CriteriaMatcher(),
+            $this->logger
+        );
 
-            $store = new Store(
-                [
-                    'driver' => 'pdo_mysql',
-                    'user' => getenv('MYSQL_USER'),
-                    'password' => getenv('MYSQL_PASSWORD'),
-                    'host' => getenv('MYSQL_HOST'),
-                    'port' => getenv('MYSQL_PORT'),
-                    'dbname' => getenv('MYSQL_DBNAME')
-                ],
-                new CriteriaParser(),
-                $this->logger
-            );
-
-            $this->repository = new Repository(
-                Fixtures\Hobbit::class,
-                'hobbits',
-                $store,
-                new ArraySerializer(),
-                new EventDispatcher()
-            );
-
-        } catch (StoreConnectionFailedException $e) {
-            $this->fail('Could not connect to MySQL: '. $e->getMessage());
-        }
-    }
-
-    /**
-     * Tests throwing a proper exception when there was a connection error.
-     *
-     * @expectedException \Knit\Exceptions\StoreConnectionFailedException
-     */
-    public function testConnectionError()
-    {
-        new Store(
-            [
-                'driver' => 'pdo_mysql',
-                'user' => 'unknown',
-                'password' => 'notsosecret',
-                'host' => '127.0.1.1'
-            ],
-            new CriteriaParser()
+        $this->repository = new Repository(
+            Fixtures\Hobbit::class,
+            'hobbits',
+            $store,
+            new ArraySerializer(),
+            new EventDispatcher()
         );
     }
 
     /**
-     * Tests the connection and also prepares the schema for tests.
-     */
-    public function testConnection()
-    {
-        $connection = $this->repository->getStore()->getConnection();
-
-        $sql = file_get_contents(__DIR__ .'/../../resources/tests/knit_test.sql');
-        $connection->query($sql);
-    }
-
-    /**
      * Tests inserting data to the store.
-     *
-     * @depends testConnection
      */
     public function testInsert()
     {
@@ -132,16 +82,20 @@ class DoctrineDBALTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * Tests that invalid add query throws an exception.
-     *
-     * @expectedException \Knit\Exceptions\StoreQueryErrorException
+     * Inserts data to the store.
      */
-    public function testInsertError()
+    private function insertData()
     {
-        $this->repository->getStore()->add(
-            $this->repository->getCollection(),
-            ['no_such_column' => 1]
-        );
+        // create some hobbits
+        foreach ([
+            ['name' => 'Frodo', 'surname' => 'Baggins', 'height' => 140],
+            ['name' => 'Sam', 'surname' => 'Gamgee', 'height' => 132],
+            ['name' => 'Merry', 'surname' => 'Brandybuck', 'height' => 135],
+            ['name' => 'Pippin', 'surname' => 'Took', 'height' => 142]
+        ] as $data) {
+            $hobbit = $this->repository->createWithData($data);
+            $this->repository->save($hobbit);
+        }
     }
 
     /**
@@ -174,7 +128,7 @@ class DoctrineDBALTest extends \PHPUnit_Framework_TestCase
             ],
             [ // #4
                 'criteria' => ['height:gte' => 132, 'height:lte' => 140],
-                'params' => ['orderBy' => ['height' => Knit::ORDER_DESC, 'name' => Knit::ORDER_DESC]],
+                'params' => ['orderBy' => ['height' => Knit::ORDER_DESC]],
                 'expected' => ['Frodo', 'Merry', 'Sam']
             ],
             [ // #5
@@ -233,8 +187,53 @@ class DoctrineDBALTest extends \PHPUnit_Framework_TestCase
             ],
             [ // #14
                 'criteria' => [],
-                'params' => ['orderBy' => ['name', 'height']],
+                'params' => ['orderBy' => ['name']],
                 'expected' => ['Frodo', 'Merry', 'Pippin', 'Sam']
+            ],
+            [ // #15
+                'criteria' => [
+                    Knit::LOGIC_OR => ['height:lt' => 142, 'surname:like' => '%oo%']
+                ],
+                'params' => [],
+                'expected' => ['Frodo', 'Sam', 'Merry', 'Pippin']
+            ],
+            [ // #16
+                'criteria' => ['name:in' => ['Sam', 'Pippin']],
+                'params' => [],
+                'expected' => ['Sam', 'Pippin']
+            ],
+            [ // #17
+                'criteria' => ['name:in' => []],
+                'params' => [],
+                'expected' => []
+            ],
+            [ // #18
+                'criteria' => ['name:not_in' => []],
+                'params' => [],
+                'expected' => ['Frodo', 'Sam', 'Merry', 'Pippin']
+            ],
+            [ // #19
+                'criteria' => ['name:regex' => '/rr/si'],
+                'params' => [],
+                'expected' => ['Merry']
+            ],
+            [ // #20
+                'criteria' => ['name:like' => '%oo\%'],
+                'params' => [],
+                'expected' => []
+            ],
+            [ // #21
+                'criteria' => ['name' => 'Frodo', 'name:eq' => 'Sam'],
+                'params' => [],
+                'expected' => []
+            ],
+            [ // #22
+                'criteria' => [
+                    Knit::LOGIC_OR => ['height:lt' => 142, 'surname:like' => '%oo%'],
+                    Knit::LOGIC_AND => ['height:gte' => 100, 'name' => 'Frodo']
+                ],
+                'params' => [],
+                'expected' => ['Frodo']
             ],
         ];
     }
@@ -251,6 +250,8 @@ class DoctrineDBALTest extends \PHPUnit_Framework_TestCase
      */
     public function testFind(array $criteria, array $params, array $expected)
     {
+        $this->insertData();
+
         $hobbits = $this->repository->find($criteria, $params);
 
         $this->assertCount(count($expected), $hobbits, $this->logger->getLastMessage());
@@ -264,17 +265,9 @@ class DoctrineDBALTest extends \PHPUnit_Framework_TestCase
      */
     public function testFindWithInvalidOperator()
     {
-        $this->repository->find(['height:exists' => 142]);
-    }
+        $this->insertData();
 
-    /**
-     * Tests that an exception is thrown when the find query fails.
-     *
-     * @expectedException \Knit\Exceptions\StoreQueryErrorException
-     */
-    public function testFindQueryError()
-    {
-        $this->repository->find([], ['orderBy' => 'no_such_column']);
+        $this->repository->find(['height:exists' => 142]);
     }
 
     /**
@@ -289,18 +282,10 @@ class DoctrineDBALTest extends \PHPUnit_Framework_TestCase
      */
     public function testCount(array $criteria, array $params, array $expected)
     {
+        $this->insertData();
+
         $hobbitsFound = $this->repository->count($criteria, $params);
         $this->assertEquals(count($expected), $hobbitsFound);
-    }
-
-    /**
-     * Tests that an exception is thrown when the count query fails.
-     *
-     * @expectedException \Knit\Exceptions\StoreQueryErrorException
-     */
-    public function testCountQueryError()
-    {
-        $this->repository->count(['no_such_column' => 5]);
     }
 
     /**
@@ -310,6 +295,8 @@ class DoctrineDBALTest extends \PHPUnit_Framework_TestCase
      */
     public function testUpdate()
     {
+        $this->insertData();
+
         $hobbit = $this->repository->findOneByName('Frodo');
         $this->assertEquals('Baggins', $hobbit->getSurname());
 
@@ -321,46 +308,19 @@ class DoctrineDBALTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * Tests that an exception is thrown when the query fails.
-     *
-     * @depends           testInsert
-     * @expectedException \Knit\Exceptions\StoreQueryErrorException
-     */
-    public function testUpdateError()
-    {
-        $this->repository->getStore()->update(
-            $this->repository->getCollection(),
-            null,
-            ['no_such_column' => 1]
-        );
-    }
-
-    /**
      * Tests removing objects from the store.
      *
      * @depends testFind
      */
     public function testRemove()
     {
+        $this->insertData();
+
         $this->assertEquals(4, $this->repository->count());
 
         $hobbit = $this->repository->findOneByName('Merry');
         $this->repository->delete($hobbit);
 
         $this->assertEquals(3, $this->repository->count());
-    }
-
-    /**
-     * Tests that an exception is thrown when the query fails.
-     *
-     * @depends           testInsert
-     * @expectedException \Knit\Exceptions\StoreQueryErrorException
-     */
-    public function testRemoveError()
-    {
-        $this->repository->getStore()->remove(
-            $this->repository->getCollection(),
-            new CriteriaExpression(['no_such_column' => 45])
-        );
     }
 }
