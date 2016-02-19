@@ -135,10 +135,12 @@ class RepositoryTest extends \PHPUnit_Framework_TestCase
         $params = [];
         $newCriteria = array_merge($criteria, ['deleted' => 0]);
         $newParams = ['orderBy' => 'height', 'orderDir' => Knit::ORDER_DESC];
+        $phpunit = $this;
 
         $mocks['eventDispatcher']->addListener(
             Knit::EVENT_WILL_READ,
-            function (Events\CriteriaEvent $event) use ($newCriteria, $newParams) {
+            function (Events\CriteriaEvent $event) use ($newCriteria, $newParams, $mocks, $phpunit) {
+                $phpunit->assertEquals($mocks['objectClass'], $event->getObjectClass());
                 $event->setCriteria($newCriteria);
                 $event->setParams($newParams);
             }
@@ -185,9 +187,12 @@ class RepositoryTest extends \PHPUnit_Framework_TestCase
             $this->provideHobbit(['name' => 'Pippin'])
         ];
 
+        $phpunit = $this;
+
         $mocks['eventDispatcher']->addListener(
             Knit::EVENT_DID_READ,
-            function (Events\ResultsEvent $event) use ($newResults) {
+            function (Events\ResultsEvent $event) use ($newResults, $mocks, $phpunit) {
+                $phpunit->assertEquals($mocks['objectClass'], $event->getObjectClass());
                 $event->setResults($newResults);
             }
         );
@@ -497,10 +502,12 @@ class RepositoryTest extends \PHPUnit_Framework_TestCase
         $params = [];
         $newCriteria = array_merge($criteria, ['deleted' => 0]);
         $newParams = ['orderBy' => 'height', 'orderDir' => Knit::ORDER_DESC];
+        $phpunit = $this;
 
         $mocks['eventDispatcher']->addListener(
             Knit::EVENT_WILL_READ,
-            function (Events\CriteriaEvent $event) use ($newCriteria, $newParams) {
+            function (Events\CriteriaEvent $event) use ($newCriteria, $newParams, $mocks, $phpunit) {
+                $phpunit->assertEquals($mocks['objectClass'], $event->getObjectClass());
                 $event->setCriteria($newCriteria);
                 $event->setParams($newParams);
             }

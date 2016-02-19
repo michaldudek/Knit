@@ -122,7 +122,7 @@ class Repository
     public function find(array $criteria = [], array $params = [])
     {
         // dispatch an event with the criteria, so they can be modified
-        $criteriaEvent = new CriteriaEvent($criteria, $params);
+        $criteriaEvent = new CriteriaEvent($this->objectClass, $criteria, $params);
         $this->eventDispatcher->dispatch(Knit::EVENT_WILL_READ, $criteriaEvent);
         
         // read the potentially updated criteria
@@ -135,7 +135,7 @@ class Repository
         $objects = $this->mapResults($results);
         
         // dispatch an event with the results so they can be modified
-        $resultsEvent = new ResultsEvent($objects);
+        $resultsEvent = new ResultsEvent($this->objectClass, $objects);
         $this->eventDispatcher->dispatch(Knit::EVENT_DID_READ, $resultsEvent);
 
         return $resultsEvent->getResults();
@@ -259,7 +259,7 @@ class Repository
     public function count(array $criteria = [], array $params = [])
     {
         // dispatch an event with the criteria, so they can be modified
-        $criteriaEvent = new CriteriaEvent($criteria, $params);
+        $criteriaEvent = new CriteriaEvent($this->objectClass, $criteria, $params);
         $this->eventDispatcher->dispatch(Knit::EVENT_WILL_READ, $criteriaEvent);
         
         // read the potentially updated criteria
