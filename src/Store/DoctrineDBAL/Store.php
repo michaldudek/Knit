@@ -58,11 +58,16 @@ class Store implements StoreInterface, LoggerAwareInterface
      * @param array                $config         Connection configuration. Passed directory to `Connection`.
      * @param CriteriaParser       $criteriaParser Knit criteria parser.
      * @param LoggerInterface|null $logger         [optional] Logger.
+     * @param Connection|null      $connection     [optional] Existing Doctrine DBAL connection if you already have one.
      */
-    public function __construct(array $config, CriteriaParser $criteriaParser, LoggerInterface $logger = null)
-    {
+    public function __construct(
+        array $config,
+        CriteriaParser $criteriaParser,
+        LoggerInterface $logger = null,
+        Connection $connection = null
+    ) {
         try {
-            $this->connection = DriverManager::getConnection($config, new Configuration());
+            $this->connection = $connection ? $connection : DriverManager::getConnection($config, new Configuration());
             $this->connection->connect();
         } catch (\Exception $e) {
             throw new StoreConnectionFailedException('DoctrineDBAL: '. $e->getMessage(), $e->getCode(), $e);
