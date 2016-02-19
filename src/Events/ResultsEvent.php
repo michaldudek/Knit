@@ -17,6 +17,13 @@ use Symfony\Component\EventDispatcher\Event;
 class ResultsEvent extends Event
 {
     /**
+     * Class name of the object that is searched.
+     *
+     * @var string
+     */
+    protected $objectClass;
+
+    /**
      * Results.
      *
      * @var array
@@ -26,11 +33,23 @@ class ResultsEvent extends Event
     /**
      * Constructor.
      *
-     * @param array $results Results.
+     * @param string $objectClass Class name of the object that is searched.
+     * @param array  $results     Results.
      */
-    public function __construct(array $results)
+    public function __construct($objectClass, array $results)
     {
+        $this->objectClass = $objectClass;
         $this->results = $results;
+    }
+
+    /**
+     * Returns the class name of the object that is searched.
+     *
+     * @return string
+     */
+    public function getObjectClass()
+    {
+        return $this->objectClass;
     }
 
     /**
