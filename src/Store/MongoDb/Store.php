@@ -59,6 +59,34 @@ class Store implements StoreInterface, LoggerAwareInterface
     protected $criteriaParser;
 
     /**
+     * Are we connected to the store yet?
+     *
+     * @var boolean
+     */
+    protected $connected = false;
+
+    /**
+     * Connection DSN.
+     *
+     * @var string
+     */
+    protected $dsn;
+
+    /**
+     * Database name.
+     *
+     * @var string
+     */
+    protected $databaseName;
+
+    /**
+     * Connection options.
+     *
+     * @var array
+     */
+    protected $options = [];
+
+    /**
      * Constructor.
      *
      * @param array                $config         Connection config.
@@ -116,13 +144,34 @@ class Store implements StoreInterface, LoggerAwareInterface
                 }
             }
 
-            // finally connect and select the db
-            $this->client = new MongoClient($dsn, $options);
-            $this->database = $this->client->{$config['database']};
+            $this->dsn = $dsn;
+            $this->options = $options;
+            $this->databaseName = $config['database'];
 
         } catch (MongoConnectionException $e) {
             throw new StoreConnectionFailedException($e->getMessage(), $e->getCode(), $e);
         }
+    }
+
+    /**
+     * Connect to the store.
+     *
+     * @throws StoreConnectionFailedException When could not connect to the store.
+     */
+    protected function connect()
+    {
+        if ($this->connected) {
+            return;
+        }
+
+        try {
+            $this->client = new MongoClient($this->dsn, $this->options);
+            $this->database = $this->client->{$this->databaseName};
+        } catch (\Exception $e) {
+            throw new StoreConnectionFailedException('DoctrineDBAL: '. $e->getMessage(), $e->getCode(), $e);
+        }
+
+        $this->connected = true;
     }
 
     /**
@@ -136,6 +185,8 @@ class Store implements StoreInterface, LoggerAwareInterface
      */
     public function find($collection, CriteriaExpression $criteria = null, array $params = [])
     {
+        $this->connect();
+        
         $timer = new Timer();
 
         $criteria = $this->criteriaParser->parse($criteria);
@@ -203,6 +254,8 @@ class Store implements StoreInterface, LoggerAwareInterface
      */
     public function count($collection, CriteriaExpression $criteria = null, array $params = [])
     {
+        $this->connect();
+        
         $timer = new Timer();
 
         $criteria = $this->criteriaParser->parse($criteria);
@@ -249,6 +302,8 @@ class Store implements StoreInterface, LoggerAwareInterface
      */
     public function add($collection, array $properties)
     {
+        $this->connect();
+        
         $timer = new Timer();
 
         // set the new ID
@@ -292,6 +347,8 @@ class Store implements StoreInterface, LoggerAwareInterface
      */
     public function update($collection, CriteriaExpression $criteria = null, array $properties = [])
     {
+        $this->connect();
+        
         $timer = new Timer();
 
         $criteria = $this->criteriaParser->parse($criteria);
@@ -334,6 +391,8 @@ class Store implements StoreInterface, LoggerAwareInterface
      */
     public function remove($collection, CriteriaExpression $criteria = null)
     {
+        $this->connect();
+        
         $timer = new Timer();
 
         $criteria = $this->criteriaParser->parse($criteria);
@@ -364,6 +423,8 @@ class Store implements StoreInterface, LoggerAwareInterface
      */
     public function getClient()
     {
+        $this->connect();
+        
         return $this->client;
     }
 
@@ -374,6 +435,8 @@ class Store implements StoreInterface, LoggerAwareInterface
      */
     public function getDatabase()
     {
+        $this->connect();
+        
         return $this->database;
     }
 

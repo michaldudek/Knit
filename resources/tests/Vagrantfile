@@ -112,6 +112,6 @@ fi;
 SCRIPT
 
     config.vm.provision "shell", inline: $install_env_vars, privileged: false
-    config.vm.provision "sheel", inline: $create_database
+    config.vm.provision "shell", inline: $create_database
 
 end

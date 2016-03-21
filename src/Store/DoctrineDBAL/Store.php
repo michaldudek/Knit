@@ -49,6 +49,13 @@ class Store implements StoreInterface, LoggerAwareInterface
     protected $criteriaParser;
 
     /**
+     * Are we connected to the store yet?
+     *
+     * @var boolean
+     */
+    protected $connected = false;
+
+    /**
      * Constructor.
      *
      * Creates database connection using Doctrine's `Connection` class based on passed `$config`.
@@ -68,13 +75,32 @@ class Store implements StoreInterface, LoggerAwareInterface
     ) {
         try {
             $this->connection = $connection ? $connection : DriverManager::getConnection($config, new Configuration());
-            $this->connection->connect();
         } catch (\Exception $e) {
             throw new StoreConnectionFailedException('DoctrineDBAL: '. $e->getMessage(), $e->getCode(), $e);
         }
 
         $this->criteriaParser = $criteriaParser;
         $this->logger = $logger ? $logger : new NullLogger();
+    }
+
+    /**
+     * Connect to the store.
+     *
+     * @throws StoreConnectionFailedException When could not connect to the store.
+     */
+    protected function connect()
+    {
+        if ($this->connected) {
+            return;
+        }
+
+        try {
+            $this->connection->connect();
+        } catch (\Exception $e) {
+            throw new StoreConnectionFailedException('DoctrineDBAL: '. $e->getMessage(), $e->getCode(), $e);
+        }
+
+        $this->connected = true;
     }
 
     /**
@@ -88,6 +114,8 @@ class Store implements StoreInterface, LoggerAwareInterface
      */
     public function find($collection, CriteriaExpression $criteria = null, array $params = [])
     {
+        $this->connect();
+        
         $timer = new Timer();
 
         $queryBuilder = $this->connection->createQueryBuilder()
@@ -148,6 +176,8 @@ class Store implements StoreInterface, LoggerAwareInterface
      */
     public function count($collection, CriteriaExpression $criteria = null, array $params = [])
     {
+        $this->connect();
+        
         $timer = new Timer();
 
         // first create a normal SELECT query to apply any filters
@@ -203,6 +233,8 @@ class Store implements StoreInterface, LoggerAwareInterface
      */
     public function add($collection, array $properties)
     {
+        $this->connect();
+        
         $timer = new Timer();
 
         $queryBuilder = $this->connection->createQueryBuilder()
@@ -245,6 +277,8 @@ class Store implements StoreInterface, LoggerAwareInterface
      */
     public function update($collection, CriteriaExpression $criteria = null, array $properties = [])
     {
+        $this->connect();
+        
         $timer = new Timer();
 
         $queryBuilder = $this->connection->createQueryBuilder()
@@ -280,6 +314,8 @@ class Store implements StoreInterface, LoggerAwareInterface
      */
     public function remove($collection, CriteriaExpression $criteria = null)
     {
+        $this->connect();
+        
         $timer = new Timer();
 
         $queryBuilder = $this->connection->createQueryBuilder()
@@ -309,6 +345,8 @@ class Store implements StoreInterface, LoggerAwareInterface
      */
     public function getConnection()
     {
+        $this->connect();
+        
         return $this->connection;
     }
 
