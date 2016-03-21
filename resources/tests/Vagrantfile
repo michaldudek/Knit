@@ -102,7 +102,7 @@ done
 SCRIPT
 
     $create_database = <<SCRIPT
-if [ -z "$MYSQL_DBNAME" ];
+if [ -z "MYSQL_DBNAME" ];
 then
     echo "${MYSQL_DBNAME} is already created";
 else

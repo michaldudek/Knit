@@ -87,7 +87,7 @@ class DoctrineDBALTest extends \PHPUnit_Framework_TestCase
      */
     public function testConnectionError()
     {
-        new Store(
+        $store = new Store(
             [
                 'driver' => 'pdo_mysql',
                 'user' => 'unknown',
@@ -96,6 +96,7 @@ class DoctrineDBALTest extends \PHPUnit_Framework_TestCase
             ],
             new CriteriaParser()
         );
+        $store->find('hobbits');
     }
 
     /**
