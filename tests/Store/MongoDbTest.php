@@ -86,7 +86,7 @@ class MongoDbTest extends \PHPUnit_Framework_TestCase
      */
     public function testConnectionError()
     {
-        new Store(
+        $store = new Store(
             [
                 'username' => 'unknown',
                 'password' => 'notsosecret',
@@ -95,6 +95,7 @@ class MongoDbTest extends \PHPUnit_Framework_TestCase
             ],
             new CriteriaParser()
         );
+        $store->find('hobbits');
     }
 
     /**
@@ -529,6 +530,7 @@ class MongoDbTest extends \PHPUnit_Framework_TestCase
 
         $this->setPrivateProperty($store, 'client', $client);
         $this->setPrivateProperty($store, 'database', $database);
+        $this->setPrivateProperty($store, 'connected', true);
 
         return $store;
     }
