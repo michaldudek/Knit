@@ -46,7 +46,7 @@ class Store implements StoreInterface, LoggerAwareInterface
      *
      * @var integer
      */
-    protected $currentId = 0;
+    protected $currentId = 1;
 
     /**
      * Constructor.
@@ -100,7 +100,7 @@ class Store implements StoreInterface, LoggerAwareInterface
         $this->log(
             'find',
             $collection,
-            $criteria->getRaw(),
+            $criteria ? $criteria->getRaw() : [],
             [
                 'params' => $params,
                 'time' => $timer->stop(),
@@ -189,7 +189,7 @@ class Store implements StoreInterface, LoggerAwareInterface
         $this->log(
             'upate',
             $collection,
-            $criteria->getRaw(),
+            $criteria ? $criteria->getRaw() : [],
             [
                 'properties' => $properties,
                 'time' => $timer->stop(),
@@ -223,7 +223,7 @@ class Store implements StoreInterface, LoggerAwareInterface
         $this->log(
             'remove',
             $collection,
-            $criteria->getRaw(),
+            $criteria ? $criteria->getRaw() : [],
             [
                 'time' => $timer->stop(),
                 'affected' => $affected
