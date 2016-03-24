@@ -104,8 +104,9 @@ class Knit
      * Gets a repository for the given object class.
      *
      * @param string                   $objectClass     Class name of the object that will be managed by the repository.
-     * @param string                   $collection      Name of the collection / table in which objects are stored in
-     *                                                  the store.
+     * @param string|null              $collection      [optional] Name of the collection / table in which objects are
+     *                                                  stored in the store. Can be omitted if the repository was
+     *                                                  previously fetched.
      * @param StoreInterface|null      $store           [optional] Store in which the objects are stored,
      *                                                  if not the default.
      * @param DataMapperInterface|null $dataMapper      [optional] DataMapper for the repository if not the default.
@@ -115,7 +116,7 @@ class Knit
      */
     public function getRepository(
         $objectClass,
-        $collection,
+        $collection = null,
         StoreInterface $store = null,
         DataMapperInterface $dataMapper = null,
         $repositoryClass = null
@@ -125,6 +126,17 @@ class Knit
         // if this repository already created then just return it
         if (isset($this->repositories[$objectClass])) {
             return $this->repositories[$objectClass];
+        }
+
+        if (empty($collection)) {
+            throw new \InvalidArgumentException(
+                sprintf(
+                    '%s::%s expects argument 1 to be a non-empty string - name of the collection - '
+                    .'if the repository was not fetched before.',
+                    __CLASS__,
+                    __METHOD__
+                )
+            );
         }
 
         // fill defaults if necessary

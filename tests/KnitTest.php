@@ -116,6 +116,19 @@ class KnitTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
+     * Tests getting a repository when the $collection argument is not passed.
+     *
+     * @expectedException \InvalidArgumentException
+     */
+    public function testGetRepositoryWithOmittedCollection()
+    {
+        $mocks = $this->provideMocks();
+        $knit = new Knit($mocks['store'], $mocks['dataMapper'], $mocks['eventDispatcher']);
+
+        $knit->getRepository(Fixtures\Orc::class);
+    }
+
+    /**
      * Provides mock objects.
      *
      * @return array
