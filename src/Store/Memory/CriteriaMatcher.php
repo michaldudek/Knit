@@ -252,7 +252,7 @@ class CriteriaMatcher
     private function like(array $object, $property, $value)
     {
         // replace non-escaped % to match-all
-        $value = preg_replace('/(?<!\\\)%/', '.+', $value);
+        $value = preg_replace('/(?<!\\\)%/', '.*', $value);
         // replace escaped % (\%) to normal %
         $value = preg_replace('/\\\%/', '%', $value);
 
@@ -271,7 +271,7 @@ class CriteriaMatcher
     private function notLike(array $object, $property, $value)
     {
         // replace non-escaped % to match-all
-        $value = preg_replace('/(?<!\\\)%/', '.+', $value);
+        $value = preg_replace('/(?<!\\\)%/', '.*', $value);
         // replace escaped % (\%) to normal %
         $value = preg_replace('/\\\%/', '%', $value);
 
