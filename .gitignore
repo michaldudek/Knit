@@ -2,3 +2,5 @@ composer.lock
 /vendor/
 /tests/coverage/
 /tests/tmp
+/resources/coverage
+/resources/tests/.vagrant
