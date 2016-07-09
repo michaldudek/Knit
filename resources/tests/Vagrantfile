@@ -13,7 +13,7 @@ end
 
 Vagrant.configure("2") do |config|
     # install ubuntu
-    config.vm.box = "chef/ubuntu-14.04"
+    config.vm.box = "bento/ubuntu-16.04"
 
     # configure network
     config.vm.hostname = "knit"
@@ -45,10 +45,9 @@ Vagrant.configure("2") do |config|
             "recipe[chef-hat::base]",
             "recipe[mongodb::10gen_repo]",
             "recipe[mongodb]",
-            "recipe[mysql::server]",
+            # "recipe[mysql::server]",
             "recipe[chef-hat::php]",
             "recipe[chef-hat::php-composer]",
-            "recipe[chef-hat::php-mongo]",
             "recipe[chef-hat::php-xdebug]"
         ]
         chef.json = {
@@ -69,16 +68,16 @@ Vagrant.configure("2") do |config|
         }
     end
 
+# env_vars[MYSQL]=1
+# env_vars[MYSQL_USER]=root
+# env_vars[MYSQL_PASSWORD]=vagrant
+# env_vars[MYSQL_HOST]=127.0.0.1
+# env_vars[MYSQL_PORT]=3306
+# env_vars[MYSQL_DBNAME]=knit_test
     # add ENV variables for Knit DB testing
     $install_env_vars = <<SCRIPT
 echo Installing Knit ENV variables for DB testing...
 declare -A env_vars
-env_vars[MYSQL]=1
-env_vars[MYSQL_USER]=root
-env_vars[MYSQL_PASSWORD]=vagrant
-env_vars[MYSQL_HOST]=127.0.0.1
-env_vars[MYSQL_PORT]=3306
-env_vars[MYSQL_DBNAME]=knit_test
 env_vars[MONGODB]=1
 env_vars[MONGODB_USER]=""
 env_vars[MONGODB_PASSWORD]=""
@@ -112,6 +111,6 @@ fi;
 SCRIPT
 
     config.vm.provision "shell", inline: $install_env_vars, privileged: false
-    config.vm.provision "shell", inline: $create_database
+    # config.vm.provision "shell", inline: $create_database
 
 end
