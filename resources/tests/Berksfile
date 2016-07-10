@@ -1,6 +1,0 @@
-source 'https://api.berkshelf.com'
-
-cookbook 'apt', '~> 2.7.0'
-cookbook 'mongodb', '~> 0.16.2'
-cookbook 'mysql', '<6.0'
-cookbook 'chef-hat', git: 'https://github.com/michaldudek/chef-hat.git'

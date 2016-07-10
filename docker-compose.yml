@@ -1,0 +1,36 @@
+version: '2'
+services:
+    mysql:
+        image: mysql
+        ports:
+            - 3306:3306
+        environment:
+            MYSQL_ROOT_PASSWORD: knit
+            MYSQL_DATABASE: knit
+
+    mongodb:
+        image: mongo
+        ports:
+            - 27017:27017
+
+    php:
+        image: michaldudek/php7:latest
+        environment:
+            MYSQL: 1
+            MYSQL_USER: root
+            MYSQL_PASSWORD: knit
+            MYSQL_HOST: mysql
+            MYSQL_PORT: 3306
+            MYSQL_DBNAME: knit
+            MONGODB: 1
+            MONGODB_USER: ~
+            MONGODB_PASSWORD: ~
+            MONGODB_HOST: mongodb
+            MONGODB_PORT: 27017
+            MONGODB_DBNAME: knit
+        links:
+            - mysql
+            - mongodb
+        volumes:
+            - .:/knit
+        command: tail -f /dev/null
