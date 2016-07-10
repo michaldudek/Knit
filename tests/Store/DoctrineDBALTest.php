@@ -106,7 +106,7 @@ class DoctrineDBALTest extends \PHPUnit_Framework_TestCase
     {
         $connection = $this->repository->getStore()->getConnection();
 
-        $sql = file_get_contents(__DIR__ .'/../../resources/tests/knit_test.sql');
+        $sql = file_get_contents(__DIR__ .'/../../resources/knit_test.sql');
         $connection->query($sql);
     }
 
