@@ -10,7 +10,7 @@
         }
     ],
     "require": {
-        "php": ">=5.5",
+        "php": ">=7.0",
         "psr/log": "~1.0",
         "mongodb/mongodb": "~1.0",
         "doctrine/dbal": "~2.5",
