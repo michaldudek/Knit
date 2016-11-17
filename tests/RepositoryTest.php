@@ -1487,9 +1487,9 @@ class RepositoryTest extends \PHPUnit_Framework_TestCase
 
         $mocks['objectClass'] = Fixtures\Hobbit::class;
         $mocks['collection'] = 'hobbits';
-        $mocks['store'] = $this->getMock(StoreInterface::class);
+        $mocks['store'] = $this->createMock(StoreInterface::class);
         $mocks['dataMapper'] = new ArraySerializer();
-        $mocks['eventDispatcher'] = $this->getMock(EventDispatcherInterface::class);
+        $mocks['eventDispatcher'] = $this->createMock(EventDispatcherInterface::class);
 
         return $mocks;
     }
