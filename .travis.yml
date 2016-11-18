@@ -6,18 +6,12 @@ env:
     - DB=mysql MYSQL_USER=root MYSQL_PASSWORD="" MYSQL_HOST=127.0.0.1 MYSQL_PORT=3306 MYSQL_DBNAME=knit_test
     - MONGODB=1 MONGODB_user="" MONGODB_PASSWORD="" MONGODB_HOST=127.0.0.1 MONGODB_PORT=27017 MONGODB_DBNAME=knit_test
 
-# matrix:
-#     exclude:
-#         # no MongoDB driver for PHP 7 yet
-#         - php: 7.0
-#           env: MONGODB=1 MONGODB_user="" MONGODB_PASSWORD="" MONGODB_HOST=127.0.0.1 MONGODB_PORT=27017 MONGODB_DBNAME=knit_test
-
 services:
     - mongodb
 
 before_install:
+    - 'echo "extension = mongodb.so" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini'
     - 'if [ -z "$MYSQL_DBNAME" ]; then echo "${MYSQL_DBNAME} is already created"; else mysql -e "CREATE DATABASE IF NOT EXISTS ${MYSQL_DBNAME};"; echo "Created ${MYSQL_DBNAME}"; fi;'
-    - 'if [ "$MONGODB" = "1" ]; then echo "extension = mongodb.so" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini; fi;'
 
 before_script:
     - make install
