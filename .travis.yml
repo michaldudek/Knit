@@ -15,9 +15,11 @@ env:
 services:
     - mongodb
 
-before_script:
+before_install:
     - 'if [ -z "$MYSQL_DBNAME" ]; then echo "${MYSQL_DBNAME} is already created"; else mysql -e "CREATE DATABASE IF NOT EXISTS ${MYSQL_DBNAME};"; echo "Created ${MYSQL_DBNAME}"; fi;'
-    - 'if [[ "$MONGODB" == "1" ]]; then echo "extension = mongodb.so" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini; fi;'
+    - 'if [ "$MONGODB" = "1" ]; then echo "extension = mongodb.so" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini; fi;'
+
+before_script:
     - make install
 
 script:
