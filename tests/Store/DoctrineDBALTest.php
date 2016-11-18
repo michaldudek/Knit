@@ -74,7 +74,6 @@ class DoctrineDBALTest extends \PHPUnit_Framework_TestCase
                 new ArraySerializer(),
                 new EventDispatcher()
             );
-
         } catch (StoreConnectionFailedException $e) {
             $this->fail('Could not connect to MySQL: '. $e->getMessage());
         }

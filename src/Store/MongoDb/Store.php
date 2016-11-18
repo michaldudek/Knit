@@ -1,11 +1,9 @@
 <?php
 namespace Knit\Store\MongoDb;
 
-use MongoClient;
-use MongoConnectionException;
-use MongoDB;
-use MongoException;
-use MongoId;
+use MongoDB\Client as MongoClient;
+use MongoDB\Database as MongoDB;
+use MongoDB\Driver\Exception\Exception as MongoException;
 
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
@@ -16,7 +14,6 @@ use MD\Foundation\Debug\Timer;
 use MD\Foundation\Utils\ArrayUtils;
 
 use Knit\Criteria\CriteriaExpression;
-use Knit\Exceptions\StoreConnectionFailedException;
 use Knit\Exceptions\StoreQueryErrorException;
 use Knit\Store\MongoDb\CriteriaParser;
 use Knit\Store\StoreInterface;
@@ -147,16 +144,15 @@ class Store implements StoreInterface, LoggerAwareInterface
             $this->dsn = $dsn;
             $this->options = $options;
             $this->databaseName = $config['database'];
-
-        } catch (MongoConnectionException $e) {
-            throw new StoreConnectionFailedException($e->getMessage(), $e->getCode(), $e);
+        } catch (MongoException $e) {
+            throw new StoreQueryErrorException($e->getMessage(), $e->getCode(), $e);
         }
     }
 
     /**
      * Connect to the store.
      *
-     * @throws StoreConnectionFailedException When could not connect to the store.
+     * @throws StoreQueryErrorException When could not connect to the store.
      */
     protected function connect()
     {
@@ -168,7 +164,7 @@ class Store implements StoreInterface, LoggerAwareInterface
             $this->client = new MongoClient($this->dsn, $this->options);
             $this->database = $this->client->{$this->databaseName};
         } catch (\Exception $e) {
-            throw new StoreConnectionFailedException('DoctrineDBAL: '. $e->getMessage(), $e->getCode(), $e);
+            throw new StoreQueryErrorException('DoctrineDBAL: '. $e->getMessage(), $e->getCode(), $e);
         }
 
         $this->connected = true;
@@ -192,28 +188,34 @@ class Store implements StoreInterface, LoggerAwareInterface
         $criteria = $this->criteriaParser->parse($criteria);
 
         try {
-            $cursor = $this->database->{$collection}->find($criteria);
-
+            $options = [];
+            
             // apply params
             if (isset($params['start'])) {
-                $cursor->skip(intval($params['start']));
+                $options['skip'] = intval($params['start']);
             }
 
             if (isset($params['limit'])) {
-                $cursor->limit(intval($params['limit']));
+                $options['limit'] = intval($params['limit']);
             }
 
             if (isset($params['orderBy'])) {
                 $orderBy = $this->parseOrderBy($params);
                 if (!empty($orderBy)) {
-                    $cursor->sort($orderBy);
+                    $options['sort'] = $orderBy;
                 }
             }
 
+            $cursor = $this->database->{$collection}->find($criteria, $options);
+
             // parse the results
             $result = [];
-            while ($cursor->hasNext()) {
-                $result[] = $cursor->getNext();
+            foreach ($cursor as $document) {
+                $item = (array)$document;
+                if ($item['_id']) {
+                    $item['id'] = (string)$item['_id'];
+                }
+                $result[] = $item;
             }
         } catch (MongoException $e) {
             $this->log(
@@ -234,7 +236,7 @@ class Store implements StoreInterface, LoggerAwareInterface
             [
                 'params' => $params,
                 'time' => $timer->stop(),
-                'affected' => $cursor->count(true)
+                'affected' => count($result)
             ]
         );
 
@@ -267,7 +269,7 @@ class Store implements StoreInterface, LoggerAwareInterface
         $params = array_merge(['limit' => 0, 'skip' => 0], $params);
 
         try {
-            $result = $this->database->{$collection}->count($criteria, $params['limit'], $params['skip']);
+            $result = $this->database->{$collection}->count($criteria, $params);
         } catch (MongoException $e) {
             $this->log(
                 'count',
@@ -306,16 +308,16 @@ class Store implements StoreInterface, LoggerAwareInterface
         
         $timer = new Timer();
 
-        // set the new ID
-        $properties['_id'] = new MongoId();
-
-        // also map `_id` property to `id` if such is desired
-        if (array_key_exists('id', $properties)) {
-            $properties['id'] = (string)$properties['_id'];
-        }
-
         try {
-            $this->database->{$collection}->insert($properties);
+            $result = $this->database->{$collection}->insertOne($properties);
+
+            // set the new ID
+            $properties['_id'] = $result->getInsertedId();
+
+            // also map `_id` property to `id` if such is desired
+            if (array_key_exists('id', $properties)) {
+                $properties['id'] = (string)$properties['_id'];
+            }
         } catch (MongoException $e) {
             $this->log(
                 'insert',
@@ -335,7 +337,7 @@ class Store implements StoreInterface, LoggerAwareInterface
             ['time' => $timer->stop()]
         );
 
-        return $properties['_id'];
+        return (string)$properties['_id'];
     }
 
     /**
@@ -354,10 +356,9 @@ class Store implements StoreInterface, LoggerAwareInterface
         $criteria = $this->criteriaParser->parse($criteria);
 
         try {
-            $info = $this->database->{$collection}->update(
+            $info = $this->database->{$collection}->updateMany(
                 $criteria,
-                ['$set' => $properties], // use '$set' operator because update should only update those specific fields
-                ['multi' => true]
+                ['$set' => $properties] // use '$set' operator because update should only update those specific fields
             );
         } catch (MongoException $e) {
             $this->log(
@@ -398,7 +399,7 @@ class Store implements StoreInterface, LoggerAwareInterface
         $criteria = $this->criteriaParser->parse($criteria);
 
         try {
-            $info = $this->database->{$collection}->remove($criteria);
+            $info = $this->database->{$collection}->deleteMany($criteria);
         } catch (MongoException $e) {
             $this->log('remove', $collection, $criteria, [], 'error');
             throw new StoreQueryErrorException('MongoDB: '. $e->getMessage(), $e->getCode(), $e);

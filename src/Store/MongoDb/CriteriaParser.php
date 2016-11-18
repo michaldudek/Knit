@@ -1,7 +1,7 @@
 <?php
 namespace Knit\Store\MongoDb;
 
-use MongoId;
+use MongoDB\BSON\ObjectID;
 
 use Knit\Criteria\CriteriaExpression;
 use Knit\Criteria\PropertyValue;
@@ -167,11 +167,11 @@ class CriteriaParser
     }
 
     /**
-     * Converts the given value to `MongoId` object (or array of those).
+     * Converts the given value to `ObjectID` object (or array of those).
      *
      * @param string|array $value Value to be converted.
      *
-     * @return MongoId|array
+     * @return ObjectID|array
      */
     private function convertToMongoId($value)
     {
@@ -182,7 +182,7 @@ class CriteriaParser
                 if (empty($id)) {
                     throw new \InvalidArgumentException('Cannot convert an empty value to MongoId object.');
                 }
-                $ids[] = new MongoId($id);
+                $ids[] = new ObjectID($id);
             }
             
             return $ids;
@@ -192,7 +192,7 @@ class CriteriaParser
             throw new \InvalidArgumentException('Cannot convert an empty value to MongoId object.');
         }
 
-        return new MongoId($value);
+        return new ObjectID($value);
     }
 
     /**

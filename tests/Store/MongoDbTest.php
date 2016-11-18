@@ -3,13 +3,18 @@ namespace Knit\Tests\Store;
 
 use Symfony\Component\EventDispatcher\EventDispatcher;
 
+use MongoDB\Client as MongoClient;
+use MongoDB\Database as MongoDB;
+use MongoDB\Collection as MongoCollection;
+use MongoDB\Exception\Exception as MongoException;
+
 use MD\Foundation\Utils\ObjectUtils;
 
 use Knit\Tests\Fixtures;
 
 use Knit\Criteria\CriteriaExpression;
 use Knit\DataMapper\ArraySerializable\ArraySerializer;
-use Knit\Exceptions\StoreConnectionFailedException;
+use Knit\Exceptions\StoreQueryErrorException;
 use Knit\Store\MongoDb\CriteriaParser;
 use Knit\Store\MongoDb\Store;
 use Knit\Repository;
@@ -21,7 +26,7 @@ use Knit\Knit;
  * @package    Knit
  * @subpackage Store
  * @author     Michał Pałys-Dudek <michal@michaldudek.pl>
- * @copyright  2015 Michał Pałys-Dudek
+ * @copyright  2016 Michał Pałys-Dudek
  * @license    https://github.com/michaldudek/Knit/blob/master/LICENSE.md MIT License
  */
 class MongoDbTest extends \PHPUnit_Framework_TestCase
@@ -73,8 +78,7 @@ class MongoDbTest extends \PHPUnit_Framework_TestCase
                 new ArraySerializer(),
                 new EventDispatcher()
             );
-
-        } catch (StoreConnectionFailedException $e) {
+        } catch (StoreQueryErrorException $e) {
             $this->fail('Could not connect to MongoDB: '. $e->getMessage());
         }
     }
@@ -82,7 +86,7 @@ class MongoDbTest extends \PHPUnit_Framework_TestCase
     /**
      * Tests throwing a proper exception when there was a connection error.
      *
-     * @expectedException \Knit\Exceptions\StoreConnectionFailedException
+     * @expectedException \Knit\Exceptions\StoreQueryErrorException
      */
     public function testConnectionError()
     {
@@ -124,7 +128,7 @@ class MongoDbTest extends \PHPUnit_Framework_TestCase
         $store->getDatabase()
             ->dropCollection($this->repository->getCollection());
 
-        $this->assertInstanceOf(\MongoClient::class, $store->getClient());
+        $this->assertInstanceOf(MongoClient::class, $store->getClient());
     }
 
     /**
@@ -162,8 +166,8 @@ class MongoDbTest extends \PHPUnit_Framework_TestCase
         $store->getDatabase()
             ->hobbits
             ->expects($this->once())
-            ->method('insert')
-            ->will($this->throwException(new \MongoException()));
+            ->method('insertOne')
+            ->will($this->throwException(new Fixtures\MongoExceptionMock()));
 
         $store->add('hobbits', []);
     }
@@ -386,7 +390,7 @@ class MongoDbTest extends \PHPUnit_Framework_TestCase
             ->hobbits
             ->expects($this->once())
             ->method('find')
-            ->will($this->throwException(new \MongoException()));
+            ->will($this->throwException(new Fixtures\MongoExceptionMock()));
 
         $store->find('hobbits');
     }
@@ -421,7 +425,7 @@ class MongoDbTest extends \PHPUnit_Framework_TestCase
             ->hobbits
             ->expects($this->once())
             ->method('count')
-            ->will($this->throwException(new \MongoException()));
+            ->will($this->throwException(new Fixtures\MongoExceptionMock()));
 
         $store->count('hobbits');
     }
@@ -456,8 +460,8 @@ class MongoDbTest extends \PHPUnit_Framework_TestCase
         $store->getDatabase()
             ->hobbits
             ->expects($this->once())
-            ->method('update')
-            ->will($this->throwException(new \MongoException()));
+            ->method('updateMany')
+            ->will($this->throwException(new Fixtures\MongoExceptionMock()));
 
         $store->update('hobbits');
     }
@@ -490,8 +494,8 @@ class MongoDbTest extends \PHPUnit_Framework_TestCase
         $store->getDatabase()
             ->hobbits
             ->expects($this->once())
-            ->method('remove')
-            ->will($this->throwException(new \MongoException()));
+            ->method('deleteMany')
+            ->will($this->throwException(new Fixtures\MongoExceptionMock()));
 
         $store->remove('hobbits');
     }
@@ -502,15 +506,15 @@ class MongoDbTest extends \PHPUnit_Framework_TestCase
     protected function provideStore()
     {
 
-        $client = $this->getMockBuilder(\MongoClient::class)
+        $client = $this->getMockBuilder(MongoClient::class)
             ->disableOriginalConstructor()
             ->getMock();
 
-        $database = $this->getMockBuilder(\MongoDB::class)
+        $database = $this->getMockBuilder(MongoDB::class)
             ->disableOriginalConstructor()
             ->getMock();
 
-        $collection = $this->getMockBuilder(\MongoCollection::class)
+        $collection = $this->getMockBuilder(MongoCollection::class)
             ->disableOriginalConstructor()
             ->getMock();
 
