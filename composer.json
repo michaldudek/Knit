@@ -12,7 +12,7 @@
     "minimum-stability": "dev",
     "require": {
         "php": ">=5.3.3",
-        "psr/log": "1.0.*",
+        "psr/log": ">=1.0,<2.0",
         "michaldudek/foundation": ">=0.9,<2.0",
         "splot/event-manager": "dev-master"
     },
